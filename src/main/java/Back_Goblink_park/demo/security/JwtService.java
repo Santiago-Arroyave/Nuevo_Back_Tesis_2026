@@ -1,75 +1,132 @@
 package Back_Goblink_park.demo.security;
 
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 
+    // =========================================
+    // PROPERTIES
+    // =========================================
+
     @Value("${jwt.secret}")
-    private String secret;
+    private String secretKey;
 
     @Value("${jwt.expiration}")
-    private Long expiration;
+    private long jwtExpiration;
 
-    // Generar clave HMAC a partir del secret (para JJWT 0.11.5)
-    private Key getSigningKey() {
-        byte[] keyBytes = secret.getBytes();
-        return Keys.hmacShaKeyFor(keyBytes);
-    }
+    // =========================================
+    // GENERAR TOKEN
+    // =========================================
 
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
-    }
+    public String generateToken(String username) {
 
-    public Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
-    }
-
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
-    }
-
-    private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
-    }
-
-    private Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    public String generateToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        // Puedes agregar claims adicionales como roles
-        claims.put("roles", userDetails.getAuthorities());
-        return createToken(claims, userDetails.getUsername());
-    }
-
-    private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+
+                .setSubject(username)
+
+                .setIssuedAt(new Date())
+
+                .setExpiration(
+                        new Date(
+                                System.currentTimeMillis()
+                                        + jwtExpiration
+                        )
+                )
+
+                .signWith(
+                        getSignInKey(),
+                        SignatureAlgorithm.HS256
+                )
+
                 .compact();
     }
 
-    public Boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    // =========================================
+    // EXTRAER USERNAME
+    // =========================================
+
+    public String extractUsername(String token) {
+
+        return extractClaim(
+                token,
+                Claims::getSubject
+        );
+    }
+
+    // =========================================
+    // EXTRAER CLAIM
+    // =========================================
+
+    public <T> T extractClaim(
+            String token,
+            Function<Claims, T> resolver
+    ) {
+
+        final Claims claims =
+                extractAllClaims(token);
+
+        return resolver.apply(claims);
+    }
+
+    // =========================================
+    // EXTRAER CLAIMS
+    // =========================================
+
+    private Claims extractAllClaims(String token) {
+
+        return Jwts.parserBuilder()
+
+                .setSigningKey(getSignInKey())
+
+                .build()
+
+                .parseClaimsJws(token)
+
+                .getBody();
+    }
+
+    // =========================================
+    // VALIDAR TOKEN
+    // =========================================
+
+    public boolean isTokenValid(
+            String token,
+            UserDetails userDetails
+    ) {
+
+        final String username =
+                extractUsername(token);
+
+        return username.equals(
+                userDetails.getUsername()
+        );
+    }
+
+    // =========================================
+    // SIGNING KEY
+    // =========================================
+
+    private Key getSignInKey() {
+
+        byte[] keyBytes =
+                Decoders.BASE64.decode(secretKey);
+
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }
