@@ -7,6 +7,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "proyectos")
@@ -151,6 +152,18 @@ public class Proyecto {
 
     private java.util.List<ProyectoReporte> reportes;
 
+    // =====================================================
+// REPORTES ASOCIADOS
+// =====================================================
+
+    @OneToMany(
+            mappedBy = "proyecto",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+
+    private List<ProyectoReporte> reportesAsociados;
+
     // -----------------------------------------------------
     // RESPONSABLES
     // -----------------------------------------------------
@@ -210,6 +223,7 @@ public class Proyecto {
     )
 
     private java.util.List<ProyectoMeta> metas;
+
 
     // -----------------------------------------------------
     // PRESUPUESTOS

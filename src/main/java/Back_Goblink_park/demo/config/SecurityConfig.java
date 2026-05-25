@@ -1,6 +1,7 @@
 package Back_Goblink_park.demo.config;
 
 import Back_Goblink_park.demo.security.JwtAuthenticationFilter;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.context.annotation.Bean;
@@ -12,7 +13,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -49,7 +49,6 @@ public class SecurityConfig {
                 // =====================================
 
                 .sessionManagement(session ->
-
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
@@ -61,48 +60,34 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // =====================================
+                        // =====================================================
                         // AUTH LIBRE
-                        // =====================================
+                        // =====================================================
 
                         .requestMatchers(
                                 "/api/auth/**"
                         ).permitAll()
 
                         // =====================================================
-                        // ROLES
+                        // ROLES -> SOLO ADMIN
                         // =====================================================
-
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/roles/**"
-                        ).hasAuthority("ADMIN")
 
                         .requestMatchers(
                                 "/api/roles/**"
                         ).hasAuthority("ADMIN")
 
                         // =====================================================
-                        // USUARIOS
+                        // USUARIOS -> SOLO ADMIN
                         // =====================================================
 
                         .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/usuarios/**"
-                        ).hasAuthority("ADMIN")
-
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/usuarios/**"
-                        ).hasAuthority("ADMIN")
-
-                        .requestMatchers(
-                                HttpMethod.DELETE,
                                 "/api/usuarios/**"
                         ).hasAuthority("ADMIN")
 
                         // =====================================================
                         // CATEGORIAS
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
                         // =====================================================
 
                         .requestMatchers(
@@ -116,6 +101,8 @@ public class SecurityConfig {
 
                         // =====================================================
                         // PRIORIDADES
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
                         // =====================================================
 
                         .requestMatchers(
@@ -129,6 +116,8 @@ public class SecurityConfig {
 
                         // =====================================================
                         // ESTADOS REPORTE
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
                         // =====================================================
 
                         .requestMatchers(
@@ -140,132 +129,232 @@ public class SecurityConfig {
                                 "/api/estados-reporte/**"
                         ).hasAuthority("ADMIN")
 
-                                // =====================================================
-                                // ESTADOS PROYECTO
-                                // =====================================================
+                        // =====================================================
+                        // ESTADOS PROYECTO
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
+                        // =====================================================
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/estados-proyecto/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/estados-proyecto/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-                                .requestMatchers(
-                                        "/api/estados-proyecto/**"
-                                ).hasAuthority("ADMIN")
+                        .requestMatchers(
+                                "/api/estados-proyecto/**"
+                        ).hasAuthority("ADMIN")
 
+                        // =====================================================
+                        // REPORTES
+                        // GET POST -> ADMIN Y USER
+                        // PUT DELETE -> ADMIN
+                        // =====================================================
 
-                                // =====================================
-                                // REPORTES
-                                // GET -> USER Y ADMIN
-                                // =====================================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/reportes/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/reportes/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/reportes/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-                                // =====================================
-                                // REPORTES
-                                // POST -> USER Y ADMIN
-                                // =====================================
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/reportes/**"
+                        ).hasAuthority("ADMIN")
 
-                                .requestMatchers(
-                                        HttpMethod.POST,
-                                        "/api/reportes/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/reportes/**"
+                        ).hasAuthority("ADMIN")
 
-                                // =====================================
-                                // REPORTES
-                                // DELETE -> SOLO ADMIN
-                                // =====================================
+                        // =====================================================
+                        // EVIDENCIAS
+                        // GET POST -> ADMIN Y USER
+                        // DELETE -> ADMIN
+                        // =====================================================
 
-                                .requestMatchers(
-                                        HttpMethod.DELETE,
-                                        "/api/reportes/**"
-                                ).hasAuthority("ADMIN")
-                                // =====================================
-// EVIDENCIAS
-// GET -> USER Y ADMIN
-// =====================================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/evidencias/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/evidencias/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/evidencias/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-// =====================================
-// EVIDENCIAS
-// POST -> USER Y ADMIN
-// =====================================
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/evidencias/**"
+                        ).hasAuthority("ADMIN")
 
-                                .requestMatchers(
-                                        HttpMethod.POST,
-                                        "/api/evidencias/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        // =====================================================
+                        // COMENTARIOS REPORTE
+                        // GET POST PUT -> ADMIN Y USER
+                        // DELETE -> ADMIN
+                        // =====================================================
 
-// =====================================
-// EVIDENCIAS
-// DELETE -> SOLO ADMIN
-// =====================================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/comentarios-reporte/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-                                .requestMatchers(
-                                        HttpMethod.DELETE,
-                                        "/api/evidencias/**"
-                                ).hasAuthority("ADMIN")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/comentarios-reporte/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-                                // =====================================
-// COMENTARIOS
-// GET -> USER Y ADMIN
-// =====================================
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/comentarios-reporte/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/comentarios/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/comentarios-reporte/**"
+                        ).hasAuthority("ADMIN")
 
-// =====================================
-// COMENTARIOS
-// POST -> USER Y ADMIN
-// =====================================
+                        // =====================================================
+                        // PROYECTOS
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
+                        // =====================================================
 
-                                .requestMatchers(
-                                        HttpMethod.POST,
-                                        "/api/comentarios/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/proyectos/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-// =====================================
-// COMENTARIOS
-// PUT -> USER Y ADMIN
-// =====================================
+                        .requestMatchers(
+                                "/api/proyectos/**"
+                        ).hasAuthority("ADMIN")
 
-                                .requestMatchers(
-                                        HttpMethod.PUT,
-                                        "/api/comentarios/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        // =====================================================
+                        // PROYECTO MIEMBROS
+                        // GET -> ADMIN Y USER
+                        // POST DELETE -> ADMIN
+                        // =====================================================
 
-// =====================================
-// COMENTARIOS
-// DELETE -> SOLO ADMIN
-// =====================================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/proyecto-miembros/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
 
-                                .requestMatchers(
-                                        HttpMethod.DELETE,
-                                        "/api/comentarios/**"
-                                ).hasAuthority("ADMIN")
+                        .requestMatchers(
+                                "/api/proyecto-miembros/**"
+                        ).hasAuthority("ADMIN")
 
-                                // PROYECTOS GET
-                                .requestMatchers(
-                                        HttpMethod.GET,
-                                        "/api/proyectos/**"
-                                ).hasAnyAuthority("ADMIN", "USER")
+                        // =====================================================
+                        // PROYECTO REPORTES
+                        // GET -> ADMIN Y USER
+                        // POST DELETE -> ADMIN
+                        // =====================================================
 
-// PROYECTOS ADMIN
-                                .requestMatchers(
-                                        "/api/proyectos/**"
-                                ).hasAuthority("ADMIN")
-                        // =====================================
-                        // TODO LO DEMÁS
-                        // =====================================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/proyecto-reportes/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
+
+                        .requestMatchers(
+                                "/api/proyecto-reportes/**"
+                        ).hasAuthority("ADMIN")
+
+                        // =====================================================
+                        // RESPONSABLES PROYECTO
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
+                        // =====================================================
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/responsables-proyecto/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
+
+                        .requestMatchers(
+                                "/api/responsables-proyecto/**"
+                        ).hasAuthority("ADMIN")
+
+                        // =====================================================
+                        // SEGUIMIENTOS PROYECTO
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
+                        // =====================================================
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/seguimientos-proyecto/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
+
+                        .requestMatchers(
+                                "/api/seguimientos-proyecto/**"
+                        ).hasAuthority("ADMIN")
+
+                        // =====================================================
+                        // CRONOGRAMA ACTIVIDADES
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
+                        // =====================================================
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/cronograma-actividades/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
+
+                        .requestMatchers(
+                                "/api/cronograma-actividades/**"
+                        ).hasAuthority("ADMIN")
+
+                        // =====================================================
+                        // PROYECTO OBJETIVOS
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
+                        // =====================================================
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/proyecto-objetivos/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
+
+                        .requestMatchers(
+                                "/api/proyecto-objetivos/**"
+                        ).hasAuthority("ADMIN")
+
+                        // =====================================================
+                        // PROYECTO METAS
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
+                        // =====================================================
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/proyecto-metas/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
+
+                        .requestMatchers(
+                                "/api/proyecto-metas/**"
+                        ).hasAuthority("ADMIN")
+
+                        // =====================================================
+                        // PROYECTO PRESUPUESTOS
+                        // GET -> ADMIN Y USER
+                        // POST PUT DELETE -> ADMIN
+                        // =====================================================
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/proyecto-presupuestos/**"
+                        ).hasAnyAuthority("ADMIN", "USER")
+
+                        .requestMatchers(
+                                "/api/proyecto-presupuestos/**"
+                        ).hasAuthority("ADMIN")
+
+                        // =====================================================
+                        // TODO LO DEMÁS PROTEGIDO
+                        // =====================================================
 
                         .anyRequest()
                         .authenticated()
@@ -276,9 +365,7 @@ public class SecurityConfig {
                 // =====================================
 
                 .addFilterBefore(
-
                         jwtAuthenticationFilter,
-
                         UsernamePasswordAuthenticationFilter.class
                 );
 

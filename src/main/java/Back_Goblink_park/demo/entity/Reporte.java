@@ -1,7 +1,6 @@
 package Back_Goblink_park.demo.entity;
 
 import jakarta.persistence.*;
-
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -29,6 +28,19 @@ public class Reporte {
     // =====================================================
     // RELACIONES
     // =====================================================
+
+    // =====================================================
+    // PROYECTOS ASOCIADOS
+    // =====================================================
+
+    @OneToMany(
+            mappedBy = "reporte",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+
+    private List<ProyectoReporte> proyectosAsociados;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario")

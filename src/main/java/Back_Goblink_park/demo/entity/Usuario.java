@@ -3,7 +3,8 @@ package Back_Goblink_park.demo.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
-
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
 import java.time.LocalDateTime;
 
 @Entity
@@ -96,6 +97,17 @@ public class Usuario {
     private List<Reporte> reportesValidados;
 
     // =====================================================
+    // RESPONSABILIDADES EN PROYECTOS
+    // =====================================================
+
+    @OneToMany(
+            mappedBy = "usuarioResponsable",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+
+    private List<ResponsableProyecto> responsabilidadesProyecto;
+    // =====================================================
     // COMENTARIOS
     // =====================================================
 
@@ -106,6 +118,30 @@ public class Usuario {
     // =====================================================
     // MÉTODOS AUTOMÁTICOS
     // =====================================================
+
+    // =====================================================
+    // SEGUIMIENTOS REALIZADOS
+    // =====================================================
+
+    @OneToMany(
+            mappedBy = "usuario",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+
+    private List<SeguimientoProyecto> seguimientosProyecto;
+
+    // =====================================================
+    // PROYECTOS PARTICIPANDO
+    // =====================================================
+
+    @OneToMany(
+            mappedBy = "usuario",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+
+    private List<ProyectoMiembro> proyectosParticipando;
 
     @PrePersist
     protected void onCreate() {
