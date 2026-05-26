@@ -32,7 +32,7 @@ public class CategoriaController {
 
     @ResponseStatus(HttpStatus.CREATED)
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
 
     public CategoriaResponse crear(
 
@@ -52,7 +52,7 @@ public class CategoriaController {
     @GetMapping
 
     @PreAuthorize(
-            "hasAnyRole('ADMIN','USER')"
+            "hasAnyAuthority('ADMIN','USER')"
     )
 
     public List<CategoriaResponse> listar() {
@@ -67,7 +67,7 @@ public class CategoriaController {
     @GetMapping("/{id}")
 
     @PreAuthorize(
-            "hasAnyRole('ADMIN','USER')"
+            "hasAnyAuthority('ADMIN','USER')"
     )
 
     public CategoriaResponse obtenerPorId(
@@ -84,7 +84,7 @@ public class CategoriaController {
 
     @PutMapping("/{id}")
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
 
     public CategoriaResponse actualizar(
 
@@ -108,7 +108,7 @@ public class CategoriaController {
 
     @DeleteMapping("/{id}")
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')")
 
     public void eliminar(
             @PathVariable Long id

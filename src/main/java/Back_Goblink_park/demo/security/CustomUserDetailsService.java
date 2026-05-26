@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,10 @@ public class CustomUserDetailsService
             String correo
     ) throws UsernameNotFoundException {
 
+        // =========================================
+        // BUSCAR USUARIO POR CORREO
+        // =========================================
+
         Usuario usuario = usuarioRepository
                 .findByCorreo(correo)
                 .orElseThrow(() ->
@@ -33,13 +39,37 @@ public class CustomUserDetailsService
                         )
                 );
 
-        return new User(
+        // =========================================
+        // AUTHORITY DEL ROL
+        // =========================================
+
+        String authority =
+                usuario.getRol()
+                        .getNombre()
+                        .trim()
+                        .toUpperCase();
+
+        // =========================================
+        // RETORNAR USER DETAILS
+        // =========================================
+
+        return new org.springframework.security.core.userdetails.User(
+
                 usuario.getCorreo(),
+
                 usuario.getPasswordHash(),
+
+                usuario.getEstado(),
+
+                true,
+
+                true,
+
+                true,
+
                 List.of(
                         new SimpleGrantedAuthority(
-                                "ROLE_" +
-                                        usuario.getRol().getNombre()
+                                authority
                         )
                 )
         );

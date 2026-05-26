@@ -92,6 +92,11 @@ public class JwtAuthenticationFilter
                                     userCorreo
                             );
 
+            System.out.println(
+                    "AUTHORITIES JWT = " +
+                            userDetails.getAuthorities()
+            );
+
             // =====================================
             // VALIDAR TOKEN
             // =====================================

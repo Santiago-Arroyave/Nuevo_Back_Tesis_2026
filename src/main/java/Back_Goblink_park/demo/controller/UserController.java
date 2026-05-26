@@ -7,27 +7,28 @@ import Back_Goblink_park.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
+
 import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/usuarios")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
     // =====================================================
+    // CREAR USUARIO
     // SOLO ADMIN
     // =====================================================
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-
-    @PreAuthorize("hasRole('ADMIN')")
-
+    @PreAuthorize("hasAuthority('ADMIN')")
     public UserResponse crearUsuario(
             @RequestBody UserRequest request
     ) {
@@ -36,28 +37,24 @@ public class UserController {
     }
 
     // =====================================================
-    // ADMIN
+    // LISTAR USUARIOS
+    // SOLO ADMIN
     // =====================================================
 
     @GetMapping
-
-    @PreAuthorize("hasRole('ADMIN')")
-
+    @PreAuthorize("hasAuthority('ADMIN')")
     public List<UserResponse> listarUsuarios() {
 
         return userService.listarUsuarios();
     }
 
     // =====================================================
-    // USER O ADMIN
+    // OBTENER USUARIO
+    // ADMIN O USER
     // =====================================================
 
     @GetMapping("/{id}")
-
-    @PreAuthorize(
-            "hasAnyRole('ADMIN','USER')"
-    )
-
+    @PreAuthorize("hasAnyAuthority('ADMIN','USER')")
     public UserResponse obtenerUsuario(
             @PathVariable Long id
     ) {
@@ -66,13 +63,12 @@ public class UserController {
     }
 
     // =====================================================
+    // ACTUALIZAR USUARIO
     // SOLO ADMIN
     // =====================================================
 
     @PutMapping("/{id}")
-
-    @PreAuthorize("hasRole('ADMIN')")
-
+    @PreAuthorize("hasAuthority('ADMIN')")
     public UserResponse actualizarUsuario(
 
             @PathVariable Long id,
@@ -87,13 +83,12 @@ public class UserController {
     }
 
     // =====================================================
+    // ELIMINAR USUARIO
     // SOLO ADMIN
     // =====================================================
 
     @DeleteMapping("/{id}")
-
-    @PreAuthorize("hasRole('ADMIN')")
-
+    @PreAuthorize("hasAuthority('ADMIN')")
     public void eliminarUsuario(
             @PathVariable Long id
     ) {
