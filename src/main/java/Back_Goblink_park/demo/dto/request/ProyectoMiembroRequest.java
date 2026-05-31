@@ -1,5 +1,6 @@
 package Back_Goblink_park.demo.dto.request;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 @Getter
@@ -9,29 +10,14 @@ import lombok.*;
 @Builder
 public class ProyectoMiembroRequest {
 
-    // =====================================================
-    // PROYECTO
-    // =====================================================
-
+    @NotNull(message = "El ID del proyecto es obligatorio")
     private Long proyectoId;
 
-    // =====================================================
-    // USUARIO
-    // =====================================================
-
+    @NotNull(message = "El ID del usuario es obligatorio")
     private Long usuarioId;
 
-    // =====================================================
-    // ROL EN PROYECTO
-    // =====================================================
-
-    /*
-        ADMIN
-        COORDINADOR
-        INVESTIGADOR
-        VOLUNTARIO
-        APOYO
-    */
-
+    @NotNull(message = "El rol del miembro en el proyecto es obligatorio")
     private String rolEnProyecto;
+
+    private Boolean estado; // Opcional, por defecto se puede asumir true
 }

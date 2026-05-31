@@ -1,31 +1,32 @@
 package Back_Goblink_park.demo.dto.request;
 
-import jakarta.validation.constraints.*;
-import lombok.Data;
+import lombok.*;
 
-@Data
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class UserRequest {
 
-    @NotNull
+    @NotNull(message = "El rol es obligatorio")
     private Long rolId;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "El nombre es obligatorio")
     private String nombres;
 
-    @NotBlank
-    @Email
-    @Size(max = 120)
+    @NotBlank(message = "El correo es obligatorio")
+    @Email(message = "Formato de correo inválido")
     private String correo;
 
-    @Size(max = 50)
     private String username;
 
-    @NotBlank
-    @Size(min = 6)
     private String password;
 
-    @Size(max = 20)
     private String telefono;
 
     private String fotoPerfil;

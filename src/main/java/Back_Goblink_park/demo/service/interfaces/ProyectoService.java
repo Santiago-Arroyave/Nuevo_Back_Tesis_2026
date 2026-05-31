@@ -2,6 +2,12 @@ package Back_Goblink_park.demo.service.interfaces;
 
 import Back_Goblink_park.demo.dto.request.ProyectoRequest;
 import Back_Goblink_park.demo.dto.response.ProyectoResponse;
+import Back_Goblink_park.demo.dto.response.ProyectoDetalleResponse;
+import Back_Goblink_park.demo.dto.request.ProyectoCompletoRequest;
+
+
+
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -86,4 +92,51 @@ public interface ProyectoService {
     List<ProyectoResponse> buscarPorNombre(
             String nombre
     );
+
+    // =====================================================
+// LISTAR PROYECTOS CON FILTROS Y PAGINACIÓN
+// =====================================================
+
+    Page<ProyectoResponse> listarProyectosPaginados(
+            String search,
+            Long estadoProyectoId,
+            Long prioridadId,
+            int page,
+            int size
+    );
+    // =====================================================
+// OBTENER DETALLE COMPLETO DEL PROYECTO
+// =====================================================
+
+    ProyectoDetalleResponse obtenerDetalleCompleto(
+            Long proyectoId
+    );
+    // =====================================================
+// CREAR PROYECTO COMPLETO
+// =====================================================
+
+    ProyectoDetalleResponse crearProyectoCompleto(
+            ProyectoCompletoRequest request,
+            String correoUsuario
+    );
+
+    // =====================================================
+// ACTUALIZAR PROYECTO COMPLETO
+// =====================================================
+
+    ProyectoDetalleResponse actualizarProyectoCompleto(
+            Long proyectoId,
+            ProyectoCompletoRequest request
+    );
+    // =====================================================
+// CONVERTIR REPORTES EN PROYECTO
+// =====================================================
+
+    ProyectoDetalleResponse convertirReportesEnProyecto(
+            ProyectoCompletoRequest request,
+            String correoUsuario
+    );
+
+
+
 }

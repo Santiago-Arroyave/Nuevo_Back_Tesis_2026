@@ -1,219 +1,107 @@
 package Back_Goblink_park.demo.service.impl;
 
 import Back_Goblink_park.demo.dto.mapper.ProyectoMiembroMapper;
-
 import Back_Goblink_park.demo.dto.request.ProyectoMiembroRequest;
-
 import Back_Goblink_park.demo.dto.response.ProyectoMiembroResponse;
-
 import Back_Goblink_park.demo.entity.Proyecto;
 import Back_Goblink_park.demo.entity.ProyectoMiembro;
 import Back_Goblink_park.demo.entity.Usuario;
-
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
-
 import Back_Goblink_park.demo.repository.ProyectoMiembroRepository;
 import Back_Goblink_park.demo.repository.ProyectoRepository;
 import Back_Goblink_park.demo.repository.UsuarioRepository;
-
 import Back_Goblink_park.demo.service.interfaces.ProyectoMiembroService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ProyectoMiembroServiceImpl
-        implements ProyectoMiembroService {
-
-    // =====================================================
-    // REPOSITORIES
-    // =====================================================
+@Transactional
+public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
 
     private final ProyectoMiembroRepository miembroRepository;
-
     private final ProyectoRepository proyectoRepository;
-
     private final UsuarioRepository usuarioRepository;
 
-    // =====================================================
-    // AGREGAR MIEMBRO
-    // =====================================================
-
     @Override
-    public ProyectoMiembroResponse agregarMiembro(
-            ProyectoMiembroRequest request
-    ) {
+    public ProyectoMiembroResponse agregarMiembro(ProyectoMiembroRequest request) {
+        Proyecto proyecto = proyectoRepository.findById(request.getProyectoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
 
-        // ==============================================
-        // VALIDAR PROYECTO
-        // ==============================================
+        Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-        Proyecto proyecto = proyectoRepository
-                .findById(request.getProyectoId())
+        boolean existe = miembroRepository.existsByProyectoIdAndUsuarioId(
+                request.getProyectoId(),
+                request.getUsuarioId()
+        );
+        if (existe) throw new RuntimeException("El usuario ya pertenece al proyecto");
 
-                .orElseThrow(() ->
+        ProyectoMiembro miembro = ProyectoMiembro.builder()
+                .proyecto(proyecto)
+                .usuario(usuario)
+                .rolEnProyecto(request.getRolEnProyecto())
+                .estado(request.getEstado() != null ? request.getEstado() : true)
+                .fechaAsignacion(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
 
-                        new ResourceNotFoundException(
-                                "Proyecto no encontrado"
-                        )
-                );
-
-        // ==============================================
-        // VALIDAR USUARIO
-        // ==============================================
-
-        Usuario usuario = usuarioRepository
-                .findById(request.getUsuarioId())
-
-                .orElseThrow(() ->
-
-                        new ResourceNotFoundException(
-                                "Usuario no encontrado"
-                        )
-                );
-
-        // ==============================================
-        // VALIDAR DUPLICADO
-        // ==============================================
-
-        boolean existe = miembroRepository
-
-                .existsByProyectoIdAndUsuarioId(
-                        request.getProyectoId(),
-                        request.getUsuarioId()
-                );
-
-        if (existe) {
-
-            throw new RuntimeException(
-                    "El usuario ya pertenece al proyecto"
-            );
-        }
-
-        // ==============================================
-        // CREAR MIEMBRO
-        // ==============================================
-
-        ProyectoMiembro miembro =
-                ProyectoMiembro.builder()
-
-                        .proyecto(proyecto)
-
-                        .usuario(usuario)
-
-                        .rolEnProyecto(
-                                request.getRolEnProyecto()
-                        )
-
-                        .build();
-
-        // ==============================================
-        // GUARDAR
-        // ==============================================
-
-        ProyectoMiembro guardado =
-                miembroRepository.save(miembro);
-
-        // ==============================================
-        // RESPONSE
-        // ==============================================
-
-        return ProyectoMiembroMapper
-                .toResponse(guardado);
+        ProyectoMiembro guardado = miembroRepository.save(miembro);
+        return ProyectoMiembroMapper.toResponse(guardado);
     }
 
-    // =====================================================
-    // LISTAR MIEMBROS PROYECTO
-    // =====================================================
-
     @Override
-    public List<ProyectoMiembroResponse>
-    listarMiembrosProyecto(
-            Long proyectoId
-    ) {
-
-        return miembroRepository
-
-                .findByProyectoId(proyectoId)
-
+    public List<ProyectoMiembroResponse> listarMiembrosProyecto(Long proyectoId) {
+        return miembroRepository.findByProyectoId(proyectoId)
                 .stream()
-
-                .map(
-                        ProyectoMiembroMapper::toResponse
-                )
-
+                .map(ProyectoMiembroMapper::toResponse)
                 .toList();
     }
 
-    // =====================================================
-    // LISTAR PROYECTOS USUARIO
-    // =====================================================
-
     @Override
-    public List<ProyectoMiembroResponse>
-    listarProyectosUsuario(
-            Long usuarioId
-    ) {
-
-        return miembroRepository
-
-                .findByUsuarioId(usuarioId)
-
+    public List<ProyectoMiembroResponse> listarProyectosUsuario(Long usuarioId) {
+        return miembroRepository.findByUsuarioId(usuarioId)
                 .stream()
-
-                .map(
-                        ProyectoMiembroMapper::toResponse
-                )
-
+                .map(ProyectoMiembroMapper::toResponse)
                 .toList();
     }
 
-    // =====================================================
-    // OBTENER MIEMBRO
-    // =====================================================
-
     @Override
-    public ProyectoMiembroResponse obtenerMiembro(
-            Long id
-    ) {
-
-        ProyectoMiembro miembro = miembroRepository
-                .findById(id)
-
-                .orElseThrow(() ->
-
-                        new ResourceNotFoundException(
-                                "Miembro no encontrado"
-                        )
-                );
-
-        return ProyectoMiembroMapper
-                .toResponse(miembro);
+    public ProyectoMiembroResponse obtenerMiembro(Long id) {
+        ProyectoMiembro miembro = miembroRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Miembro no encontrado"));
+        return ProyectoMiembroMapper.toResponse(miembro);
     }
 
-    // =====================================================
-    // ELIMINAR MIEMBRO
-    // =====================================================
+    @Override
+    public void eliminarMiembro(Long id) {
+        ProyectoMiembro miembro = miembroRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Miembro no encontrado"));
+        // Soft delete
+        miembro.setEstado(false);
+        miembro.setUpdatedAt(LocalDateTime.now());
+        miembroRepository.save(miembro);
+    }
 
     @Override
-    public void eliminarMiembro(
-            Long id
-    ) {
+    public Page<ProyectoMiembroResponse> listarMiembrosProyectoPaginado(Long proyectoId, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        return miembroRepository.findByProyectoId(proyectoId, pageable)
+                .map(ProyectoMiembroMapper::toResponse);
+    }
 
-        ProyectoMiembro miembro = miembroRepository
-                .findById(id)
-
-                .orElseThrow(() ->
-
-                        new ResourceNotFoundException(
-                                "Miembro no encontrado"
-                        )
-                );
-
-        miembroRepository.delete(miembro);
+    @Override
+    public Page<ProyectoMiembroResponse> listarProyectosUsuarioPaginado(Long usuarioId, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size);
+        return miembroRepository.findByUsuarioId(usuarioId, pageable)
+                .map(ProyectoMiembroMapper::toResponse);
     }
 }

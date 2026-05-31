@@ -52,8 +52,9 @@ public class Usuario {
     @Column(length = 20)
     private String telefono;
 
-    @Column(name = "foto_perfil")
+    @Column(name = "foto_perfil", columnDefinition = "TEXT")
     private String fotoPerfil;
+
 
     // =====================================================
     // CONTROL

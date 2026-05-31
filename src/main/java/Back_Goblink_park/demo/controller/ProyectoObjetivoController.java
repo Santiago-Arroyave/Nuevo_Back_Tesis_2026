@@ -3,141 +3,45 @@ package Back_Goblink_park.demo.controller;
 import Back_Goblink_park.demo.dto.request.ProyectoObjetivoRequest;
 import Back_Goblink_park.demo.dto.response.ProyectoObjetivoResponse;
 import Back_Goblink_park.demo.service.interfaces.ProyectoObjetivoService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/proyecto-objetivos")
 @RequiredArgsConstructor
-@CrossOrigin("*")
 public class ProyectoObjetivoController {
 
-    // =====================================================
-    // SERVICE
-    // =====================================================
-
-    private final ProyectoObjetivoService
-            proyectoObjetivoService;
-
-    // =====================================================
-    // CREAR OBJETIVO
-    // =====================================================
+    private final ProyectoObjetivoService objetivoService;
 
     @PostMapping
-    public ResponseEntity<ProyectoObjetivoResponse>
-    crearObjetivo(
-
-            @RequestBody
-            ProyectoObjetivoRequest request
-    ) {
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(
-
-                        proyectoObjetivoService
-                                .crearObjetivo(request)
-                );
+    @ResponseStatus(HttpStatus.CREATED)
+    public ProyectoObjetivoResponse crearObjetivo(@Valid @RequestBody ProyectoObjetivoRequest request) {
+        return objetivoService.crearObjetivo(request);
     }
-
-    // =====================================================
-    // LISTAR TODOS
-    // =====================================================
-
-    @GetMapping
-    public ResponseEntity<List<ProyectoObjetivoResponse>>
-    listarObjetivos() {
-
-        return ResponseEntity.ok(
-
-                proyectoObjetivoService
-                        .listarObjetivos()
-        );
-    }
-
-    // =====================================================
-    // OBTENER POR ID
-    // =====================================================
-
-    @GetMapping("/{id}")
-    public ResponseEntity<ProyectoObjetivoResponse>
-    obtenerObjetivo(
-
-            @PathVariable Long id
-    ) {
-
-        return ResponseEntity.ok(
-
-                proyectoObjetivoService
-                        .obtenerObjetivo(id)
-        );
-    }
-
-    // =====================================================
-    // LISTAR POR PROYECTO
-    // =====================================================
 
     @GetMapping("/proyecto/{proyectoId}")
-    public ResponseEntity<List<ProyectoObjetivoResponse>>
-    listarPorProyecto(
-
-            @PathVariable Long proyectoId
-    ) {
-
-        return ResponseEntity.ok(
-
-                proyectoObjetivoService
-                        .listarPorProyecto(proyectoId)
-        );
+    public List<ProyectoObjetivoResponse> listarObjetivosProyecto(@PathVariable Long proyectoId) {
+        return objetivoService.listarObjetivosProyecto(proyectoId);
     }
 
-    // =====================================================
-    // ACTUALIZAR OBJETIVO
-    // =====================================================
+    @GetMapping("/{id}")
+    public ProyectoObjetivoResponse obtenerObjetivo(@PathVariable Long id) {
+        return objetivoService.obtenerObjetivo(id);
+    }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProyectoObjetivoResponse>
-    actualizarObjetivo(
-
-            @PathVariable Long id,
-
-            @RequestBody
-            ProyectoObjetivoRequest request
-    ) {
-
-        return ResponseEntity.ok(
-
-                proyectoObjetivoService
-                        .actualizarObjetivo(
-                                id,
-                                request
-                        )
-        );
+    public ProyectoObjetivoResponse actualizarObjetivo(@PathVariable Long id, @Valid @RequestBody ProyectoObjetivoRequest request) {
+        return objetivoService.actualizarObjetivo(id, request);
     }
 
-    // =====================================================
-    // ELIMINAR OBJETIVO
-    // =====================================================
-
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void>
-    eliminarObjetivo(
-
-            @PathVariable Long id
-    ) {
-
-        proyectoObjetivoService
-                .eliminarObjetivo(id);
-
-        return ResponseEntity
-                .noContent()
-                .build();
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarObjetivo(@PathVariable Long id) {
+        objetivoService.eliminarObjetivo(id);
     }
 }

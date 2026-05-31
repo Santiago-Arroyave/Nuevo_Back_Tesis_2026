@@ -7,22 +7,19 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "categorias")
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class Categoria {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-
     @Column(name = "id_categoria")
     private long id;
 
-    @Column(name = "nombre",length = 50)
+    @Column(name = "nombre", length = 50)
     private String nombre;
 
     @Column(name = "descripcion", length = 150)
@@ -30,6 +27,15 @@ public class Categoria {
 
     @Column(nullable = false)
     private Boolean estado = true;
+
+    @Column(length = 7)
+    private String color;
+
+    @Column(name = "imagen_url")
+    private String imagenUrl;
+
+    @Column(name = "imagen_base64", columnDefinition = "TEXT")
+    private String imagenBase64;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -40,26 +46,20 @@ public class Categoria {
     // =====================================================
     // REPORTES
     // =====================================================
-
-    @OneToMany(
-            mappedBy = "categoria"
-    )
+    @OneToMany(mappedBy = "categoria")
     private List<Reporte> reportes;
 
     // =====================================================
     // FECHAS AUTOMÁTICAS
     // =====================================================
-
     @PrePersist
     public void prePersist() {
-
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
     public void preUpdate() {
-
         this.updatedAt = LocalDateTime.now();
     }
 }

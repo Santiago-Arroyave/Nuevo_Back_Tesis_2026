@@ -9,13 +9,15 @@ import Back_Goblink_park.demo.exception.BusinessException;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.RolRepository;
 import Back_Goblink_park.demo.repository.UsuarioRepository;
-import Back_Goblink_park.demo.service.UserService;
-
+import Back_Goblink_park.demo.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -23,61 +25,37 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     // =====================================================
-    // INYECCIONES
+    // INYECCIONES DE DEPENDENCIAS
     // =====================================================
-
     private final UsuarioRepository usuarioRepository;
-
     private final RolRepository rolRepository;
-
     private final PasswordEncoder passwordEncoder;
 
     // =====================================================
     // CREAR USUARIO
     // =====================================================
-
     @Override
+    @Transactional
     public UserResponse crearUsuario(UserRequest request) {
-
-        // VALIDAR CORREO
-
+        // Validar correo único
         if (usuarioRepository.existsByCorreo(request.getCorreo())) {
-
-            throw new BusinessException(
-                    "El correo ya está registrado"
-            );
+            throw new BusinessException("El correo ya está registrado");
         }
 
-        // VALIDAR USERNAME
-
-        if (request.getUsername() != null &&
-                usuarioRepository.existsByUsername(
-                        request.getUsername()
-                )) {
-
-            throw new BusinessException(
-                    "El username ya existe"
-            );
+        // Validar username único (si se envía)
+        if (request.getUsername() != null && !request.getUsername().isEmpty()
+                && usuarioRepository.existsByUsername(request.getUsername())) {
+            throw new BusinessException("El username ya existe");
         }
 
-        // BUSCAR ROL
-
+        // Buscar rol
         Rol rol = rolRepository.findById(request.getRolId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Rol no encontrado"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Rol no encontrado"));
 
-        // ENCRIPTAR PASSWORD
+        // Encriptar password
+        String hash = passwordEncoder.encode(request.getPassword());
 
-        String hash =
-                passwordEncoder.encode(
-                        request.getPassword()
-                );
-
-        // CREAR USUARIO
-
+        // Crear entidad
         Usuario usuario = Usuario.builder()
                 .rol(rol)
                 .nombres(request.getNombres())
@@ -86,30 +64,19 @@ public class UserServiceImpl implements UserService {
                 .passwordHash(hash)
                 .telefono(request.getTelefono())
                 .fotoPerfil(request.getFotoPerfil())
-                .estado(
-                        request.getEstado() != null
-                                ? request.getEstado()
-                                : true
-                )
+                .estado(request.getEstado() != null ? request.getEstado() : true)
                 .build();
 
-        // GUARDAR
-
-        Usuario usuarioGuardado =
-                usuarioRepository.save(usuario);
-
-        // RESPUESTA
-
-        return UserMapper.toResponse(usuarioGuardado);
+        Usuario guardado = usuarioRepository.save(usuario);
+        return UserMapper.toResponse(guardado);
     }
 
     // =====================================================
-    // LISTAR
+    // LISTAR USUARIOS
     // =====================================================
-
     @Override
+    @Transactional(readOnly = true)
     public List<UserResponse> listarUsuarios() {
-
         return usuarioRepository.findAll()
                 .stream()
                 .map(UserMapper::toResponse)
@@ -117,45 +84,27 @@ public class UserServiceImpl implements UserService {
     }
 
     // =====================================================
-    // OBTENER POR ID
+    // OBTENER USUARIO POR ID
     // =====================================================
-
     @Override
+    @Transactional(readOnly = true)
     public UserResponse obtenerUsuario(Long id) {
-
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Usuario no encontrado"
-                        )
-                );
-
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
         return UserMapper.toResponse(usuario);
     }
 
     // =====================================================
-    // ACTUALIZAR
+    // ACTUALIZAR USUARIO (ADMIN - DATOS COMPLETOS)
     // =====================================================
-
     @Override
-    public UserResponse actualizarUsuario(
-            Long id,
-            UserRequest request
-    ) {
-
+    @Transactional
+    public UserResponse actualizarUsuario(Long id, UserRequest request) {
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Usuario no encontrado"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         Rol rol = rolRepository.findById(request.getRolId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Rol no encontrado"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Rol no encontrado"));
 
         usuario.setRol(rol);
         usuario.setNombres(request.getNombres());
@@ -163,40 +112,102 @@ public class UserServiceImpl implements UserService {
         usuario.setUsername(request.getUsername());
         usuario.setTelefono(request.getTelefono());
         usuario.setFotoPerfil(request.getFotoPerfil());
-        usuario.setEstado(request.getEstado());
 
-        // ACTUALIZAR PASSWORD SOLO SI VIENE
-
-        if (request.getPassword() != null &&
-                !request.getPassword().isBlank()) {
-
-            usuario.setPasswordHash(
-                    passwordEncoder.encode(
-                            request.getPassword()
-                    )
-            );
+        if (request.getEstado() != null) {
+            usuario.setEstado(request.getEstado());
         }
 
-        Usuario actualizado =
-                usuarioRepository.save(usuario);
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            usuario.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        }
 
+        Usuario actualizado = usuarioRepository.save(usuario);
         return UserMapper.toResponse(actualizado);
     }
 
     // =====================================================
-    // ELIMINAR
+    // ACTUALIZAR PERFIL PROPIO (CON FOTO DE PERFIL) - NUEVO MÉTODO ✅
     // =====================================================
-
     @Override
-    public void eliminarUsuario(Long id) {
+    @Transactional
+    public UserResponse actualizarPerfilPorCorreo(
+            String correoUsuario,
+            String nombres,
+            String username,
+            String telefono,
+            MultipartFile fotoPerfil
+    ) {
+        Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
+        // Actualizar campos solo si no son null/vacíos
+        if (nombres != null && !nombres.isEmpty()) {
+            usuario.setNombres(nombres.trim());
+        }
+        if (username != null && !username.isEmpty()) {
+            // Validar que el username no esté en uso por otro usuario
+            if (!username.equals(usuario.getUsername()) && usuarioRepository.existsByUsername(username)) {
+                throw new BusinessException("El username ya está registrado por otro usuario");
+            }
+            usuario.setUsername(username.trim());
+        }
+        if (telefono != null) {
+            usuario.setTelefono(telefono.trim());
+        }
+
+        // Procesar foto de perfil si se envía nueva
+        if (fotoPerfil != null && !fotoPerfil.isEmpty()) {
+            try {
+                byte[] bytes = fotoPerfil.getBytes();
+                String base64Foto = Base64.getEncoder().encodeToString(bytes);
+                // Limpiar saltos de línea o espacios
+                usuario.setFotoPerfil(base64Foto.replaceAll("\\s", ""));
+            } catch (IOException e) {
+                throw new RuntimeException("Error al convertir la foto de perfil a Base64: " + e.getMessage(), e);
+            }
+        }
+
+        Usuario actualizado = usuarioRepository.save(usuario);
+        return UserMapper.toResponse(actualizado);
+    }
+
+    // =====================================================
+    // CAMBIAR ESTADO DE USUARIO (ACTIVAR/DESACTIVAR)
+    // =====================================================
+    @Override
+    @Transactional
+    public UserResponse cambiarEstadoUsuario(Long id, Boolean estado) {
         Usuario usuario = usuarioRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Usuario no encontrado"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-        usuarioRepository.delete(usuario);
+        usuario.setEstado(estado);
+        Usuario actualizado = usuarioRepository.save(usuario);
+        return UserMapper.toResponse(actualizado);
+    }
+
+    // =====================================================
+    // ELIMINAR USUARIO (SOFT DELETE)
+    // =====================================================
+    @Override
+    @Transactional
+    public void eliminarUsuario(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        // SOFT DELETE: Cambiar estado a false
+        usuario.setEstado(false);
+        usuarioRepository.save(usuario);
+    }
+
+    // =====================================================
+    // VALIDAR USUARIO ACTIVO (para login)
+    // =====================================================
+    public void validarUsuarioActivo(String correo) {
+        Usuario usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        if (!usuario.getEstado()) {
+            throw new BusinessException("El usuario está inactivo. Contacte al administrador.");
+        }
     }
 }

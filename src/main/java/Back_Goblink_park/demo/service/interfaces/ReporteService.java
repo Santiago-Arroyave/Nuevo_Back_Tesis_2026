@@ -1,6 +1,10 @@
 package Back_Goblink_park.demo.service.interfaces;
 
+import Back_Goblink_park.demo.dto.request.ActualizarEstadoReporteRequest;
+import Back_Goblink_park.demo.dto.request.ActualizarPrioridadReporteRequest;
 import Back_Goblink_park.demo.dto.request.ReporteRequest;
+import Back_Goblink_park.demo.dto.response.ReporteMapaResponse;
+import org.springframework.data.domain.Page;
 import Back_Goblink_park.demo.dto.response.ReporteResponse;
 
 import java.util.List;
@@ -45,6 +49,20 @@ public interface ReporteService {
             Long estadoReporteId
     );
 
+    ReporteResponse actualizarEstado(
+            Long reporteId,
+            ActualizarEstadoReporteRequest request
+    );
+
+    // =====================================================
+// ACTUALIZAR PRIORIDAD
+// =====================================================
+
+    ReporteResponse actualizarPrioridad(
+            Long reporteId,
+            ActualizarPrioridadReporteRequest request
+    );
+
     // =====================================================
     // SOFT DELETE
     // =====================================================
@@ -52,4 +70,29 @@ public interface ReporteService {
     void eliminarReporte(
             Long id
     );
+
+    // =====================================================
+// LISTAR REPORTES CON FILTROS Y PAGINACIÓN
+// =====================================================
+
+    Page<ReporteResponse> listarReportesPaginados(
+            String search,
+            Long categoriaId,
+            Long estadoReporteId,
+            Long prioridadId,
+            int page,
+            int size
+    );
+    // =====================================================
+// LISTAR REPORTES PARA MAPA
+// =====================================================
+
+    List<ReporteMapaResponse> listarReportesMapa(
+            String search,
+            Long categoriaId,
+            Long estadoReporteId,
+            Long prioridadId
+    );
+
+
 }

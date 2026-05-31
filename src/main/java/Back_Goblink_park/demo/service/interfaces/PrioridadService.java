@@ -2,18 +2,36 @@ package Back_Goblink_park.demo.service.interfaces;
 
 import Back_Goblink_park.demo.dto.request.PrioridadRequest;
 import Back_Goblink_park.demo.dto.response.PrioridadResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public interface PrioridadService {
 
-    PrioridadResponse crear(PrioridadRequest request);
+    // =====================================================
+    // CREAR
+    // =====================================================
+    // Cambiado para recibir la imagen
+    PrioridadResponse crear(PrioridadRequest request, MultipartFile imagen);
 
+    // =====================================================
+    // ACTUALIZAR
+    // =====================================================
+    // Cambiado para recibir la imagen
+    PrioridadResponse actualizar(Long id, PrioridadRequest request, MultipartFile imagen);
+
+    // =====================================================
+    // LISTAR
+    // =====================================================
     List<PrioridadResponse> listar();
 
-    PrioridadResponse obtener(Long id);
+    // =====================================================
+    // OBTENER POR ID
+    // =====================================================
+    PrioridadResponse obtenerPorId(Long id);
 
-    PrioridadResponse actualizar(Long id, PrioridadRequest request);
-
+    // =====================================================
+    // ELIMINAR
+    // =====================================================
     void eliminar(Long id);
 }

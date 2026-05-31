@@ -7,50 +7,13 @@ import java.util.List;
 
 public interface ProyectoObjetivoService {
 
-    // =====================================================
-    // CREAR OBJETIVO
-    // =====================================================
+    ProyectoObjetivoResponse crearObjetivo(ProyectoObjetivoRequest request);
 
-    ProyectoObjetivoResponse crearObjetivo(
-            ProyectoObjetivoRequest request
-    );
+    List<ProyectoObjetivoResponse> listarObjetivosProyecto(Long proyectoId);
 
-    // =====================================================
-    // LISTAR TODOS
-    // =====================================================
+    ProyectoObjetivoResponse obtenerObjetivo(Long id);
 
-    List<ProyectoObjetivoResponse> listarObjetivos();
+    ProyectoObjetivoResponse actualizarObjetivo(Long id, ProyectoObjetivoRequest request);
 
-    // =====================================================
-    // OBTENER POR ID
-    // =====================================================
-
-    ProyectoObjetivoResponse obtenerObjetivo(
-            Long id
-    );
-
-    // =====================================================
-    // LISTAR POR PROYECTO
-    // =====================================================
-
-    List<ProyectoObjetivoResponse> listarPorProyecto(
-            Long proyectoId
-    );
-
-    // =====================================================
-    // ACTUALIZAR
-    // =====================================================
-
-    ProyectoObjetivoResponse actualizarObjetivo(
-            Long id,
-            ProyectoObjetivoRequest request
-    );
-
-    // =====================================================
-    // ELIMINAR
-    // =====================================================
-
-    void eliminarObjetivo(
-            Long id
-    );
+    void eliminarObjetivo(Long id);
 }

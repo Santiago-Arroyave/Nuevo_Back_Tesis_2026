@@ -27,7 +27,7 @@ public class EstadoReporte {
     @Column(name = "descripcion",length = 150)
     private String descripcion;
 
-    @Column(name = "color", length = 20)
+    @Column(length = 7)
     private String color;
 
     @Column(name = "orden_visual", nullable = false)
