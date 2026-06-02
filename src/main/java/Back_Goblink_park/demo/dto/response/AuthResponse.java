@@ -8,6 +8,6 @@ import lombok.Data;
 public class AuthResponse {
 
     private String token;
-
+    private String mensaje;
     private UserResponse usuario;
 }

@@ -137,6 +137,10 @@ public interface ProyectoService {
             String correoUsuario
     );
 
+    // En ProyectoService.java
+    ProyectoResponse cambiarEstadoProyecto(Long id, Boolean estado);
 
+    // Método para cambiar el estado del proyecto (Planificación, En ejecución, etc.)
+    ProyectoResponse actualizarEstadoProyecto(Long id, Long estadoProyectoId);
 
 }

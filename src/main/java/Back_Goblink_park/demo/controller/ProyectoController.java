@@ -5,12 +5,14 @@ import Back_Goblink_park.demo.dto.response.ProyectoDetalleResponse;
 import Back_Goblink_park.demo.dto.response.ProyectoResponse;
 import org.springframework.data.domain.Page;
 import Back_Goblink_park.demo.service.interfaces.ProyectoService;
-
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 
 import org.springframework.web.bind.annotation.*;
@@ -39,6 +41,19 @@ public class ProyectoController {
     // =====================================================
     // CREAR
     // =====================================================
+
+    // =====================================================
+// ACTUALIZAR ESTADO DEL PROYECTO (Planificación, En ejecución, etc.)
+// =====================================================
+    @PatchMapping("/{id}/estado-proyecto")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<ProyectoResponse> actualizarEstadoProyecto(
+            @PathVariable Long id,
+            @RequestParam Long estadoProyectoId
+    ) {
+        ProyectoResponse updated = proyectoService.actualizarEstadoProyecto(id, estadoProyectoId);
+        return ResponseEntity.ok(updated);
+    }
 
     @PostMapping
     public ResponseEntity<ProyectoResponse> crearProyecto(
@@ -364,4 +379,17 @@ public class ProyectoController {
     public ResponseEntity<ProyectoResponse> obtenerProyecto(@PathVariable Long id) {
         return ResponseEntity.ok(proyectoService.obtenerProyecto(id));
     }
+    // =====================================================
+// CAMBIAR ESTADO DEL PROYECTO - SOLO ADMIN
+// =====================================================
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<ProyectoResponse> cambiarEstadoProyecto(
+            @PathVariable Long id,
+            @RequestParam Boolean estado
+    ) {
+        ProyectoResponse updated = proyectoService.cambiarEstadoProyecto(id, estado);
+        return ResponseEntity.ok(updated);
+    }
+
 }

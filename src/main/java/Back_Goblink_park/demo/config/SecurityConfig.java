@@ -15,8 +15,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
 import java.util.List;
@@ -29,26 +27,31 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     // =====================================================
-    // CONFIGURACIÓN CORS
+    // CONFIGURACIÓN CORS - ÚNICA Y CENTRALIZADA ✅
     // =====================================================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Permitir orígenes del frontend
+        // ✅ Permitir orígenes específicos del frontend (NO usar "*" con allowCredentials)
         configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:8081",  // Lovable/Vite
-                "http://localhost:8080",  // Mismo puerto (desarrollo)
-                "http://127.0.0.1:8081",
+                "http://localhost:5173",   // Vite (Lovable por defecto)
+                "http://localhost:3000",
+                "http://localhost:8081", // React/Create-React-App
+                "http://localhost:8080",   // Backend (desarrollo local)
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:3000",
                 "http://127.0.0.1:8080"
+                // Agrega aquí tu dominio de producción cuando lo tengas:
+                // "https://tu-app-lovable.app"
         ));
 
-        // Métodos HTTP permitidos
+        // ✅ Métodos HTTP permitidos
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
 
-        // Headers permitidos
+        // ✅ Headers permitidos (incluyendo Authorization para JWT)
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
@@ -59,42 +62,26 @@ public class SecurityConfig {
                 "Access-Control-Request-Headers"
         ));
 
-        // Permitir credenciales (tokens JWT)
+        // ✅ Permitir credenciales (tokens JWT) ← ESTO ES LO QUE QUERÍAS
         configuration.setAllowCredentials(true);
 
-        // Headers expuestos al frontend
+        // ✅ Headers expuestos al frontend
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 "Access-Control-Allow-Origin",
                 "Access-Control-Allow-Credentials"
         ));
 
-        // Tiempo de caché para preflight requests (1 hora)
+        // ✅ Tiempo de caché para preflight requests (1 hora)
         configuration.setMaxAge(3600L);
 
-        // Aplicar configuración a todas las rutas
+        // ✅ Aplicar configuración a todas las rutas de la API
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
     }
 
-    @Configuration
-    public class CorsConfig {
-        @Bean
-        public WebMvcConfigurer corsConfigurer() {
-            return new WebMvcConfigurer() {
-                @Override
-                public void addCorsMappings(CorsRegistry registry) {
-                    registry.addMapping("/**")
-                            .allowedOrigins("http://localhost:3000", "http://localhost:8080")
-                            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                            .allowedHeaders("*")
-                            .allowCredentials(true);
-                }
-            };
-        }
-    }
     // =====================================================
     // SECURITY FILTER CHAIN
     // =====================================================
@@ -102,12 +89,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 // =====================================
-                // HABILITAR CORS
+                // HABILITAR CORS (usando el bean de arriba)
                 // =====================================
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
                 // =====================================
-                // DESACTIVAR CSRF
+                // DESACTIVAR CSRF (para APIs stateless con JWT)
                 // =====================================
                 .csrf(csrf -> csrf.disable())
 
@@ -119,16 +106,16 @@ public class SecurityConfig {
                 )
 
                 // =====================================
-                // AUTORIZACIÓN
+                // AUTORIZACIÓN DE RUTAS
                 // =====================================
                 .authorizeHttpRequests(auth -> auth
                         // =====================================================
-                        // AUTH LIBRE
+                        // AUTH PÚBLICO
                         // =====================================================
                         .requestMatchers("/api/auth/**").permitAll()
 
                         // =====================================================
-                        // REPORTES ADMIN PATCH EXACTOS
+                        // REPORTES - PATCH ESPECÍFICOS PARA ADMIN
                         // =====================================================
                         .requestMatchers(HttpMethod.PATCH, "/api/reportes/*/estado").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/reportes/*/prioridad").hasAuthority("ADMIN")
@@ -144,7 +131,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/usuarios/**").hasAuthority("ADMIN")
 
                         // =====================================================
-                        // CATEGORIAS
+                        // CATEGORÍAS
                         // =====================================================
                         .requestMatchers(HttpMethod.GET, "/api/categorias/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/categorias/**").hasAuthority("ADMIN")
@@ -157,13 +144,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/prioridades/**").hasAuthority("ADMIN")
 
                         // =====================================================
-                        // ESTADOS REPORTE
+                        // ESTADOS DE REPORTE
                         // =====================================================
                         .requestMatchers(HttpMethod.GET, "/api/estados-reporte/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/estados-reporte/**").hasAuthority("ADMIN")
 
                         // =====================================================
-                        // ESTADOS PROYECTO
+                        // ESTADOS DE PROYECTO
                         // =====================================================
                         .requestMatchers(HttpMethod.GET, "/api/estados-proyecto/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/estados-proyecto/**").hasAuthority("ADMIN")
@@ -185,7 +172,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/evidencias/**").hasAuthority("ADMIN")
 
                         // =====================================================
-                        // COMENTARIOS REPORTE
+                        // COMENTARIOS DE REPORTE
                         // =====================================================
                         .requestMatchers(HttpMethod.GET, "/api/comentarios-reporte/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers(HttpMethod.POST, "/api/comentarios-reporte/**").hasAnyAuthority("ADMIN", "USER")
@@ -215,19 +202,19 @@ public class SecurityConfig {
                         .requestMatchers("/api/proyecto-reportes/**").hasAuthority("ADMIN")
 
                         // =====================================================
-                        // RESPONSABLES PROYECTO
+                        // RESPONSABLES DE PROYECTO
                         // =====================================================
                         .requestMatchers(HttpMethod.GET, "/api/responsables-proyecto/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/responsables-proyecto/**").hasAuthority("ADMIN")
 
                         // =====================================================
-                        // SEGUIMIENTOS PROYECTO
+                        // SEGUIMIENTOS DE PROYECTO
                         // =====================================================
                         .requestMatchers(HttpMethod.GET, "/api/seguimientos-proyecto/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/seguimientos-proyecto/**").hasAuthority("ADMIN")
 
                         // =====================================================
-                        // CRONOGRAMA ACTIVIDADES
+                        // CRONOGRAMA DE ACTIVIDADES
                         // =====================================================
                         .requestMatchers(HttpMethod.GET, "/api/cronograma-actividades/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/cronograma-actividades/**").hasAuthority("ADMIN")
@@ -251,13 +238,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/proyecto-presupuestos/**").hasAuthority("ADMIN")
 
                         // =====================================================
-                        // TODO LO DEMÁS PROTEGIDO
+                        // TODO LO DEMÁS REQUIERE AUTENTICACIÓN
                         // =====================================================
                         .anyRequest().authenticated()
                 )
 
                 // =====================================
-                // FILTRO JWT
+                // FILTRO JWT (antes de UsernamePasswordAuthenticationFilter)
                 // =====================================
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -265,7 +252,7 @@ public class SecurityConfig {
     }
 
     // =====================================================
-    // AUTH MANAGER
+    // AUTHENTICATION MANAGER
     // =====================================================
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

@@ -44,6 +44,7 @@ public class ProyectoServiceImpl implements ProyectoService {
     private final CronogramaActividadProyectoRepository cronogramaActividadProyectoRepository;
     private final SeguimientoProyectoRepository seguimientoProyectoRepository;
 
+
     // =====================================================
     // CREAR PROYECTO SIMPLE
     // =====================================================
@@ -529,5 +530,34 @@ public class ProyectoServiceImpl implements ProyectoService {
         });
 
         return obtenerDetalleCompleto(proyectoCreado.getProyecto().getId());
+    }
+
+    // En ProyectoServiceImpl.java
+
+    @Override
+    @Transactional
+    public ProyectoResponse cambiarEstadoProyecto(Long id, Boolean estado) {
+        Proyecto proyecto = proyectoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado con ID: " + id));
+
+        proyecto.setEstado(estado);
+        Proyecto actualizado = proyectoRepository.save(proyecto);
+
+        return ProyectoMapper.toResponse(actualizado);
+    }
+
+    @Override
+    @Transactional
+    public ProyectoResponse actualizarEstadoProyecto(Long id, Long estadoProyectoId) {
+        Proyecto proyecto = proyectoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado con ID: " + id));
+
+        EstadoProyecto estadoProyecto = estadoProyectoRepository.findById(estadoProyectoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Estado de proyecto no encontrado con ID: " + estadoProyectoId));
+
+        proyecto.setEstadoProyecto(estadoProyecto);
+        Proyecto actualizado = proyectoRepository.save(proyecto);
+
+        return ProyectoMapper.toResponse(actualizado);
     }
 }

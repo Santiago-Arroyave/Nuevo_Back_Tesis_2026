@@ -1,20 +1,27 @@
 package Back_Goblink_park.demo.service.impl;
 
 import Back_Goblink_park.demo.dto.mapper.UserMapper;
+import Back_Goblink_park.demo.dto.request.ChangePasswordRequest;
 import Back_Goblink_park.demo.dto.request.LoginRequest;
 import Back_Goblink_park.demo.dto.request.RegisterRequest;
 import Back_Goblink_park.demo.dto.response.AuthResponse;
 import Back_Goblink_park.demo.entity.Rol;
 import Back_Goblink_park.demo.entity.Usuario;
 import Back_Goblink_park.demo.exception.BusinessException;
+import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.RolRepository;
 import Back_Goblink_park.demo.repository.UsuarioRepository;
 import Back_Goblink_park.demo.security.JwtService;
 import Back_Goblink_park.demo.service.interfaces.AuthService;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -93,4 +100,61 @@ public class AuthServiceImpl implements AuthService {
                 .usuario(UserMapper.toResponse(usuario))
                 .build();
     }
+
+    // =====================================================
+    // OBTENER EMAIL DEL USUARIO AUTENTICADO
+    // =====================================================
+    @Override
+    public String getAuthenticatedUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new BusinessException("Usuario no autenticado");
+        }
+
+        // El "name" en nuestro JWT es el correo del usuario
+        return authentication.getName();
+    }
+
+    // =====================================================
+    // CAMBIAR CONTRASEÑA
+    // =====================================================
+    @Override
+    @Transactional
+    public AuthResponse changePassword(String correoUsuario, ChangePasswordRequest request) {
+        // Validar que las nuevas contraseñas coincidan
+        if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            throw new BusinessException("Las nuevas contraseñas no coinciden");
+        }
+
+        // Buscar usuario por correo
+        Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        // Validar contraseña actual
+        if (!passwordEncoder.matches(request.getCurrentPassword(), usuario.getPasswordHash())) {
+            throw new BusinessException("La contraseña actual es incorrecta");
+        }
+
+        // Validar que la nueva contraseña sea diferente a la actual
+        if (passwordEncoder.matches(request.getNewPassword(), usuario.getPasswordHash())) {
+            throw new BusinessException("La nueva contraseña debe ser diferente a la actual");
+        }
+
+        // Encriptar y actualizar contraseña
+        String nuevaPasswordHash = passwordEncoder.encode(request.getNewPassword());
+        usuario.setPasswordHash(nuevaPasswordHash);
+
+        // Actualizar fecha de último acceso/modificación (opcional)
+        usuario.setUltimoAcceso(LocalDateTime.now());
+
+        usuarioRepository.save(usuario);
+
+        // Retornar respuesta con datos actualizados (sin incluir password)
+        return AuthResponse.builder()
+                .mensaje("Contraseña actualizada exitosamente")
+                .usuario(UserMapper.toResponse(usuario))
+                .build();
+    }
+
 }
