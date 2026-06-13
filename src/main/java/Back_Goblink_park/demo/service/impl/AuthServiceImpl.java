@@ -3,8 +3,11 @@ package Back_Goblink_park.demo.service.impl;
 import Back_Goblink_park.demo.dto.mapper.UserMapper;
 import Back_Goblink_park.demo.dto.request.ChangePasswordRequest;
 import Back_Goblink_park.demo.dto.request.LoginRequest;
+import Back_Goblink_park.demo.dto.request.RecoverPasswordRequest;
 import Back_Goblink_park.demo.dto.request.RegisterRequest;
 import Back_Goblink_park.demo.dto.response.AuthResponse;
+
+import Back_Goblink_park.demo.dto.response.UserResponse;
 import Back_Goblink_park.demo.entity.Rol;
 import Back_Goblink_park.demo.entity.Usuario;
 import Back_Goblink_park.demo.exception.BusinessException;
@@ -157,4 +160,51 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    // =====================================================
+    // OBTENER DATOS DEL USUARIO AUTENTICADO (MI PERFIL) ✅ AGREGAR ESTO
+    // =====================================================
+    @Override
+    public UserResponse getMe(String correoUsuario) {
+        Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Usuario no encontrado con correo: " + correoUsuario));
+
+        return UserMapper.toResponse(usuario);
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse recoverPassword(RecoverPasswordRequest request) {
+        // 1. Validar que las contraseñas coincidan
+        if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            throw new BusinessException("Las nuevas contraseñas no coinciden");
+        }
+
+        // 2. Buscar usuario por Correo O por Username (lo que venga en 'identifier')
+        Usuario usuario = usuarioRepository.findByCorreo(request.getIdentifier())
+                .orElseGet(() -> {
+                    // Si no lo encontró por correo, intenta por username
+                    System.out.println(" [Backend] No encontrado por correo, buscando por username: " + request.getIdentifier());
+                    return usuarioRepository.findByUsername(request.getIdentifier())
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "No se encontró ningún usuario con: " + request.getIdentifier()));
+                });
+
+        // 3. Validar que la nueva contraseña sea diferente
+        if (passwordEncoder.matches(request.getNewPassword(), usuario.getPasswordHash())) {
+            throw new BusinessException("La nueva contraseña debe ser diferente a la actual");
+        }
+
+        // 4. Encriptar y guardar
+        usuario.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        usuarioRepository.save(usuario);
+
+        System.out.println("✅ [Backend] Contraseña recuperada exitosamente para: " + usuario.getCorreo());
+
+        // 5. Retornar respuesta (sin token, el usuario aún no hace login)
+        return AuthResponse.builder()
+                .mensaje("Contraseña recuperada exitosamente. Ahora puedes iniciar sesión.")
+                .usuario(UserMapper.toResponse(usuario))
+                .build();
+    }
 }

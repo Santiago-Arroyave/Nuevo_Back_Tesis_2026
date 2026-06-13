@@ -3,6 +3,7 @@ package Back_Goblink_park.demo.service.interfaces;
 import Back_Goblink_park.demo.dto.request.ActualizarEstadoReporteRequest;
 import Back_Goblink_park.demo.dto.request.ActualizarPrioridadReporteRequest;
 import Back_Goblink_park.demo.dto.request.ReporteRequest;
+import Back_Goblink_park.demo.dto.request.ReporteUpdateRequest;
 import Back_Goblink_park.demo.dto.response.ReporteMapaResponse;
 import org.springframework.data.domain.Page;
 import Back_Goblink_park.demo.dto.response.ReporteResponse;
@@ -63,6 +64,8 @@ public interface ReporteService {
             ActualizarPrioridadReporteRequest request
     );
 
+    // ACTUALIZAR REPORTE
+    ReporteResponse actualizarReporte(Long id, String correoUsuario, ReporteUpdateRequest request);
     // =====================================================
     // SOFT DELETE
     // =====================================================

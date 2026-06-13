@@ -2,45 +2,59 @@ package Back_Goblink_park.demo.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class EvidenciaReporteRequest {
 
     // =====================================================
-    // RELACIÓN REPORTE
+    // RELACIÓN CON REPORTE
     // =====================================================
-
-    @NotNull(message = "El reporte es obligatorio")
+    @NotNull(message = "El ID del reporte es obligatorio")
     private Long reporteId;
 
     // =====================================================
-    // DATOS ARCHIVO
+    // TIPO DE ARCHIVO
     // =====================================================
-
     @NotBlank(message = "El tipo de archivo es obligatorio")
-    private String tipoArchivo;
+    private String tipoArchivo;  // "imagen", "video", "audio", "documento"
 
-    @NotBlank(message = "La URL del archivo es obligatoria")
-    private String urlArchivo;
+    // =====================================================
+    // ✅ ARCHIVO BINARIO (Multipart para upload)
+    // =====================================================
+    private MultipartFile archivo;  // ← Recibe el archivo directamente
 
-    @NotBlank(message = "El nombre del archivo es obligatorio")
+    // =====================================================
+    // METADATOS
+    // =====================================================
     private String nombreArchivo;
 
-    private Long tamanoArchivo;
+    private Long tamanoArchivo;  // Tamaño en bytes del archivo original
+
+    private String mimeType;  // "image/jpeg", "video/mp4", etc.
 
     private String descripcion;
 
-    private Boolean esPrincipal;
+    private Boolean esPrincipal;  // true = esta es la foto principal del reporte
 
     // =====================================================
-    // NUEVOS CAMPOS
+    // MÉTODO HELPER: Convertir MultipartFile a byte[]
     // =====================================================
-
-    private String mimeType;
-
-    private String storageProvider;
-
-    private String thumbnailUrl;
+    public byte[] getArchivoAsBytes() {
+        if (archivo == null || archivo.isEmpty()) {
+            return null;
+        }
+        try {
+            return archivo.getBytes();
+        } catch (Exception e) {
+            throw new RuntimeException("Error al convertir archivo a bytes: " + e.getMessage(), e);
+        }
+    }
 }

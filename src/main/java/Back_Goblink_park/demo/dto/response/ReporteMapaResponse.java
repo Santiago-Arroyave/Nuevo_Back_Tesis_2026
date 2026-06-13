@@ -56,4 +56,5 @@ public class ReporteMapaResponse {
     private Long usuarioId;
     private String usuarioNombre;
     private String usuarioFotoPerfil;
+    private Boolean tieneImagen;
 }

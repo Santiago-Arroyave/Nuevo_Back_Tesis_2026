@@ -1,59 +1,52 @@
 package Back_Goblink_park.demo.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class EvidenciaReporteResponse {
 
     // =====================================================
     // ID
     // =====================================================
-
     private Long id;
 
     // =====================================================
-    // REPORTE
+    // RELACIÓN CON REPORTE ✅ AGREGADO
     // =====================================================
-
     private Long reporteId;
 
     // =====================================================
-    // DATOS ARCHIVO
+    // INFORMACIÓN DEL ARCHIVO
     // =====================================================
+    private String tipoArchivo;  // "imagen", "video", "audio", "documento"
 
-    private String tipoArchivo;
+    // ✅ CAMPO BASE64 (única fuente de verdad)
+    private String archivoBase64;
 
+    // ⚠️ CAMPO LEGACY para compatibilidad (siempre null)
+    @Deprecated
     private String urlArchivo;
 
     private String nombreArchivo;
-
     private Long tamanoArchivo;
-
+    private String mimeType;  // "image/jpeg", "image/png", etc.
     private String descripcion;
 
+    // =====================================================
+    // MARCADORES
+    // =====================================================
     private Boolean esPrincipal;
-
-    // =====================================================
-    // NUEVOS CAMPOS
-    // =====================================================
-
-    private String mimeType;
-
-    private String storageProvider;
-
-    private String thumbnailUrl;
 
     // =====================================================
     // FECHAS
     // =====================================================
-
     private LocalDateTime fechaCarga;
-
-    private LocalDateTime createdAt;
-
-    private LocalDateTime updatedAt;
 }
