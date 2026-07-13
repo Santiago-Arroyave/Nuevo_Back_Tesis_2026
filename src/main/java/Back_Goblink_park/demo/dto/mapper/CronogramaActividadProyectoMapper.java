@@ -1,7 +1,6 @@
 package Back_Goblink_park.demo.dto.mapper;
 
 import Back_Goblink_park.demo.dto.response.CronogramaActividadProyectoResponse;
-
 import Back_Goblink_park.demo.entity.CronogramaActividadProyecto;
 
 public class CronogramaActividadProyectoMapper {
@@ -41,25 +40,25 @@ public class CronogramaActividadProyectoMapper {
                 )
 
                 // =================================================
-                // RESPONSABLE PROYECTO
+                // MIEMBRO DEL PROYECTO (RESPONSABLE)
                 // =================================================
 
-                .responsableId(
+                .proyectoMiembroId(
 
-                        actividad.getResponsable() != null
+                        actividad.getProyectoMiembro() != null
 
-                                ? actividad.getResponsable()
+                                ? actividad.getProyectoMiembro()
                                 .getId()
 
                                 : null
                 )
 
-                .responsableTitulo(
+                .proyectoMiembroRol(
 
-                        actividad.getResponsable() != null
+                        actividad.getProyectoMiembro() != null
 
-                                ? actividad.getResponsable()
-                                .getTitulo()
+                                ? actividad.getProyectoMiembro()
+                                .getRolEnProyecto()
 
                                 : null
                 )
@@ -70,10 +69,10 @@ public class CronogramaActividadProyectoMapper {
 
                 .usuarioResponsableId(
 
-                        actividad.getResponsable() != null
+                        actividad.getProyectoMiembro() != null
 
-                                ? actividad.getResponsable()
-                                .getUsuarioResponsable()
+                                ? actividad.getProyectoMiembro()
+                                .getUsuario()
                                 .getId()
 
                                 : null
@@ -81,11 +80,22 @@ public class CronogramaActividadProyectoMapper {
 
                 .usuarioResponsableNombre(
 
-                        actividad.getResponsable() != null
+                        actividad.getProyectoMiembro() != null
 
-                                ? actividad.getResponsable()
-                                .getUsuarioResponsable()
+                                ? actividad.getProyectoMiembro()
+                                .getUsuario()
                                 .getNombres()
+
+                                : null
+                )
+
+                .usuarioResponsableEmail(
+
+                        actividad.getProyectoMiembro() != null
+
+                                ? actividad.getProyectoMiembro()
+                                .getUsuario()
+                                .getCorreo()
 
                                 : null
                 )
@@ -111,6 +121,22 @@ public class CronogramaActividadProyectoMapper {
                 )
 
                 // =================================================
+                // PRIORIDAD
+                // =================================================
+
+                .prioridad(
+                        actividad.getPrioridad()
+                )
+
+                // =================================================
+                // AVANCE
+                // =================================================
+
+                .porcentajeAvance(
+                        actividad.getPorcentajeAvance()
+                )
+
+                // =================================================
                 // FECHAS
                 // =================================================
 
@@ -123,11 +149,23 @@ public class CronogramaActividadProyectoMapper {
                 )
 
                 // =================================================
-                // EVIDENCIA
+                // EVIDENCIA - URL
                 // =================================================
 
                 .urlEvidencia(
                         actividad.getUrlEvidencia()
+                )
+
+                // =================================================
+                // EVIDENCIA - IMAGEN BASE64 (NUEVOS CAMPOS)
+                // =================================================
+
+                .imagenBase64(
+                        actividad.getImagenBase64()
+                )
+
+                .tipoImagen(
+                        actividad.getTipoImagen()
                 )
 
                 // =================================================

@@ -1,16 +1,14 @@
 package Back_Goblink_park.demo.entity;
 
 import jakarta.persistence.*;
-
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "cronograma_actividades_proyecto"
-)
+@Table(name = "cronograma_actividades_proyecto")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,9 +21,7 @@ public class CronogramaActividadProyecto {
     // =====================================================
 
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.IDENTITY
-    )
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_actividad")
     private Long id;
 
@@ -34,21 +30,16 @@ public class CronogramaActividadProyecto {
     // =====================================================
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "id_proyecto",
-            nullable = false
-    )
+    @JoinColumn(name = "id_proyecto", nullable = true)
     private Proyecto proyecto;
 
     // =====================================================
-    // RESPONSABLE
+    // RESPONSABLE (AHORA APUNTA A PROYECTO_MIEMBRO)
     // =====================================================
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(
-            name = "id_responsable"
-    )
-    private ResponsableProyecto responsable;
+    @JoinColumn(name = "id_proyecto_miembro", nullable = false)
+    private ProyectoMiembro proyectoMiembro;
 
     // =====================================================
     // INFORMACIÓN
@@ -68,6 +59,13 @@ public class CronogramaActividadProyecto {
     private String estado;
 
     // =====================================================
+    // PRIORIDAD
+    // =====================================================
+
+    @Column(nullable = false, length = 20)
+    private String prioridad;
+
+    // =====================================================
     // FECHAS
     // =====================================================
 
@@ -76,11 +74,21 @@ public class CronogramaActividadProyecto {
     private LocalDate fechaFin;
 
     // =====================================================
-    // EVIDENCIA
+    // EVIDENCIA - URL (OPCIONAL - si se sube a servidor)
     // =====================================================
 
     @Column(columnDefinition = "TEXT")
     private String urlEvidencia;
+
+    // =====================================================
+    // EVIDENCIA - IMAGEN BASE64 (NUEVO CAMPO)
+    // =====================================================
+
+    @Column(columnDefinition = "TEXT", name = "imagen_base64")
+    private String imagenBase64;
+
+    @Column(length = 50, name = "tipo_imagen")
+    private String tipoImagen;  // "image/jpeg", "image/png", etc.
 
     // =====================================================
     // OBSERVACIONES
@@ -90,13 +98,17 @@ public class CronogramaActividadProyecto {
     private String observaciones;
 
     // =====================================================
+    // AVANCE
+    // =====================================================
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal porcentajeAvance;
+
+    // =====================================================
     // AUDITORÍA
     // =====================================================
 
-    @Column(
-            name = "created_at",
-            updatable = false
-    )
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
@@ -108,15 +120,24 @@ public class CronogramaActividadProyecto {
 
     @PrePersist
     protected void onCreate() {
-
         this.createdAt = LocalDateTime.now();
-
         this.updatedAt = LocalDateTime.now();
+
+        if (this.estado == null) {
+            this.estado = "pendiente";
+        }
+
+        if (this.prioridad == null) {
+            this.prioridad = "media";
+        }
+
+        if (this.porcentajeAvance == null) {
+            this.porcentajeAvance = BigDecimal.ZERO;
+        }
     }
 
     @PreUpdate
     protected void onUpdate() {
-
         this.updatedAt = LocalDateTime.now();
     }
 }

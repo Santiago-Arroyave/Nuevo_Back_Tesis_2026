@@ -3,8 +3,11 @@ package Back_Goblink_park.demo.controller;
 import Back_Goblink_park.demo.dto.request.ProyectoRequest;
 import Back_Goblink_park.demo.dto.response.ProyectoDetalleResponse;
 import Back_Goblink_park.demo.dto.response.ProyectoResponse;
+import Back_Goblink_park.demo.service.impl.ProyectoPdfService;
 import org.springframework.data.domain.Page;
 import Back_Goblink_park.demo.service.interfaces.ProyectoService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,7 @@ public class ProyectoController {
     // =====================================================
 
     private final ProyectoService proyectoService;
+    private final ProyectoPdfService proyectoPdfService;
 
     // =====================================================
     // CREAR
@@ -390,6 +394,47 @@ public class ProyectoController {
     ) {
         ProyectoResponse updated = proyectoService.cambiarEstadoProyecto(id, estado);
         return ResponseEntity.ok(updated);
+    }
+
+    // =====================================================
+// DESCARGAR PROYECTO EN PDF
+// =====================================================
+
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> descargarProyectoPdf(
+            @PathVariable Long id
+    ) {
+        try {
+            // Obtener detalle completo del proyecto
+            ProyectoDetalleResponse proyecto =
+                    proyectoService.obtenerDetalleCompleto(id);
+
+            // Generar PDF
+            byte[] pdfContent = proyectoPdfService.generarPdfProyecto(proyecto);
+
+            if (pdfContent == null) {
+                return ResponseEntity
+                        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .build();
+            }
+
+            // Configurar headers para descarga
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData(
+                    "attachment",
+                    "proyecto-" + id + ".pdf"
+            );
+            headers.setContentLength(pdfContent.length);
+
+            return new ResponseEntity<>(pdfContent, headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
     }
 
 }

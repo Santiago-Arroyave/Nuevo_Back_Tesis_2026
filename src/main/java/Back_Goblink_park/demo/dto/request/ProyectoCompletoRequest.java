@@ -30,12 +30,6 @@ public class ProyectoCompletoRequest {
     private List<ProyectoMiembroRequest> miembros;
 
     // =====================================================
-    // RESPONSABLES DEL PROYECTO
-    // =====================================================
-
-    private List<ResponsableProyectoRequest> responsables;
-
-    // =====================================================
     // OBJETIVOS
     // =====================================================
 

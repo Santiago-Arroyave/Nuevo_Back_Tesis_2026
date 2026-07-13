@@ -18,6 +18,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +38,6 @@ public class ProyectoServiceImpl implements ProyectoService {
     private final UsuarioRepository usuarioRepository;
     private final ProyectoReporteRepository proyectoReporteRepository;
     private final ProyectoMiembroRepository proyectoMiembroRepository;
-    private final ResponsableProyectoRepository responsableProyectoRepository;
     private final ProyectoObjetivoRepository proyectoObjetivoRepository;
     private final ProyectoMetaRepository proyectoMetaRepository;
     private final ProyectoPresupuestoRepository proyectoPresupuestoRepository;
@@ -77,10 +77,10 @@ public class ProyectoServiceImpl implements ProyectoService {
             crearMiembrosProyecto(proyectoGuardado, request.getMiembros());
         }
 
-        // Crear responsables
-        if (request.getResponsables() != null && !request.getResponsables().isEmpty()) {
-            crearResponsablesProyecto(proyectoGuardado, request.getResponsables());
-        }
+        // ❌ ELIMINADO: Ya no se crean responsables separados
+        // if (request.getResponsables() != null && !request.getResponsables().isEmpty()) {
+        //     crearResponsablesProyecto(proyectoGuardado, request.getResponsables());
+        // }
 
         // Crear objetivos
         if (request.getObjetivos() != null && !request.getObjetivos().isEmpty()) {
@@ -165,7 +165,6 @@ public class ProyectoServiceImpl implements ProyectoService {
                 .proyecto(ProyectoMapper.toResponse(proyecto))
                 .reportesAsociados(proyectoReporteRepository.findByProyectoId(proyectoId).stream().map(ProyectoReporteMapper::toResponse).toList())
                 .miembros(proyectoMiembroRepository.findByProyectoId(proyectoId).stream().map(ProyectoMiembroMapper::toResponse).toList())
-                .responsables(responsableProyectoRepository.findByProyectoId(proyectoId).stream().map(ResponsableProyectoMapper::toResponse).toList())
                 .objetivos(proyectoObjetivoRepository.findByProyectoId(proyectoId).stream().map(ProyectoObjetivoMapper::toResponse).toList())
                 .metas(proyectoMetaRepository.findByProyectoId(proyectoId).stream().map(ProyectoMetaMapper::toResponse).toList())
                 .presupuesto(proyectoPresupuestoRepository.findByProyectoId(proyectoId).stream().map(ProyectoPresupuestoMapper::toResponse).toList())
@@ -210,8 +209,8 @@ public class ProyectoServiceImpl implements ProyectoService {
     }
 
     // =====================================================
-    // ACTUALIZAR PROYECTO COMPLETO - CORREGIDO ✅
-    // =====================================================
+// ACTUALIZAR PROYECTO COMPLETO - ✅ CORREGIDO
+// =====================================================
     @Override
     @Transactional
     public ProyectoDetalleResponse actualizarProyectoCompleto(Long proyectoId, ProyectoCompletoRequest request) {
@@ -233,17 +232,22 @@ public class ProyectoServiceImpl implements ProyectoService {
             crearReportesAsociados(proyectoActualizado, request.getReporteIds());
         }
 
-        // Sincronizar miembros (solo si se envían explícitamente)
+        // ✅ CORRECCIÓN CLAVE: Antes de eliminar miembros, eliminar las actividades que los referencian
         if (request.getMiembros() != null) {
+            // Primero, eliminar todas las actividades del proyecto
+            List<CronogramaActividadProyecto> actividades =
+                    cronogramaActividadProyectoRepository.findByProyectoIdOrderByFechaInicioAsc(proyectoId);
+            if (!actividades.isEmpty()) {
+                cronogramaActividadProyectoRepository.deleteAll(actividades);
+                cronogramaActividadProyectoRepository.flush();
+            }
+
+            // Luego, eliminar los miembros
             proyectoMiembroRepository.deleteAll(proyectoMiembroRepository.findByProyectoId(proyectoId));
             proyectoMiembroRepository.flush();
-            crearMiembrosProyecto(proyectoActualizado, request.getMiembros());
-        }
 
-        // Sincronizar responsables (solo si se envían explícitamente)
-        if (request.getResponsables() != null) {
-            responsableProyectoRepository.deleteAll(responsableProyectoRepository.findByProyectoId(proyectoId));
-            crearResponsablesProyecto(proyectoActualizado, request.getResponsables());
+            // Finalmente, crear los nuevos miembros
+            crearMiembrosProyecto(proyectoActualizado, request.getMiembros());
         }
 
         // Sincronizar objetivos (solo si se envían explícitamente)
@@ -267,13 +271,16 @@ public class ProyectoServiceImpl implements ProyectoService {
             crearPresupuestoProyecto(proyectoActualizado, request.getPresupuesto());
         }
 
-        // ✅ CORRECCIÓN CLAVE: Solo sincronizar cronograma si se envía Y no está vacío
-        // Si el frontend NO incluye cronogramaActividades, NO tocar las actividades existentes
+        // ✅ CORRECCIÓN: Solo sincronizar cronograma si se envía Y no está vacío
+        // Si ya eliminamos las actividades arriba, no las volvemos a eliminar
         if (request.getCronogramaActividades() != null && !request.getCronogramaActividades().isEmpty()) {
-            cronogramaActividadProyectoRepository.deleteAll(
-                    cronogramaActividadProyectoRepository.findByProyectoIdOrderByFechaInicioAsc(proyectoId)
-            );
-            cronogramaActividadProyectoRepository.flush();
+            // Si no eliminamos las actividades arriba (porque no se enviaron miembros), eliminarlas aquí
+            if (request.getMiembros() == null) {
+                cronogramaActividadProyectoRepository.deleteAll(
+                        cronogramaActividadProyectoRepository.findByProyectoIdOrderByFechaInicioAsc(proyectoId)
+                );
+                cronogramaActividadProyectoRepository.flush();
+            }
             crearCronogramaProyecto(proyectoActualizado, request.getCronogramaActividades());
         }
 
@@ -323,6 +330,7 @@ public class ProyectoServiceImpl implements ProyectoService {
         });
     }
 
+
     private void crearMiembrosProyecto(Proyecto proyecto, List<ProyectoMiembroRequest> miembros) {
         for (ProyectoMiembroRequest miembroRequest : miembros) {
             Usuario usuario = usuarioRepository.findById(miembroRequest.getUsuarioId())
@@ -333,24 +341,6 @@ public class ProyectoServiceImpl implements ProyectoService {
             proyectoMiembro.setRolEnProyecto(miembroRequest.getRolEnProyecto());
             proyectoMiembro.setEstado(true);
             proyectoMiembroRepository.save(proyectoMiembro);
-        }
-    }
-
-    private void crearResponsablesProyecto(Proyecto proyecto, List<ResponsableProyectoRequest> responsables) {
-        for (ResponsableProyectoRequest responsableRequest : responsables) {
-            Usuario usuarioResponsable = usuarioRepository.findById(responsableRequest.getUsuarioResponsableId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Usuario responsable no encontrado"));
-            ResponsableProyecto responsable = new ResponsableProyecto();
-            responsable.setProyecto(proyecto);
-            responsable.setUsuarioResponsable(usuarioResponsable);
-            responsable.setTitulo(responsableRequest.getTitulo());
-            responsable.setDescripcion(responsableRequest.getDescripcion());
-            responsable.setEstado(responsableRequest.getEstado());
-            responsable.setPrioridad(responsableRequest.getPrioridad());
-            responsable.setFechaInicio(responsableRequest.getFechaInicio());
-            responsable.setFechaLimite(responsableRequest.getFechaLimite());
-            responsable.setPorcentajeAvance(responsableRequest.getPorcentajeAvance());
-            responsableProyectoRepository.save(responsable);
         }
     }
 
@@ -383,22 +373,56 @@ public class ProyectoServiceImpl implements ProyectoService {
         }
     }
 
+
+
+    // =====================================================
+    // CREAR CRONOGRAMA PROYECTO - ✅ CORREGIDO
+    // =====================================================
     private void crearCronogramaProyecto(Proyecto proyecto, List<CronogramaActividadProyectoRequest> actividades) {
         for (CronogramaActividadProyectoRequest actividadRequest : actividades) {
             CronogramaActividadProyecto actividad = new CronogramaActividadProyecto();
             actividad.setProyecto(proyecto);
-            if (actividadRequest.getResponsableId() != null) {
-                ResponsableProyecto responsable = responsableProyectoRepository.findById(actividadRequest.getResponsableId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Responsable no encontrado"));
-                actividad.setResponsable(responsable);
+
+            // ✅ AHORA USA ProyectoMiembro EN LUGAR DE ResponsableProyecto
+            if (actividadRequest.getProyectoMiembroId() != null) {
+                ProyectoMiembro proyectoMiembro = proyectoMiembroRepository
+                        .findById(actividadRequest.getProyectoMiembroId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "Miembro del proyecto no encontrado con ID: "
+                                        + actividadRequest.getProyectoMiembroId()
+                        ));
+
+                // Validar que el miembro pertenece al proyecto
+                if (!proyectoMiembro.getProyecto().getId().equals(proyecto.getId())) {
+                    throw new IllegalArgumentException(
+                            "El miembro seleccionado no pertenece a este proyecto"
+                    );
+                }
+
+                actividad.setProyectoMiembro(proyectoMiembro);
             }
+
             actividad.setNombre(actividadRequest.getNombre());
             actividad.setDescripcion(actividadRequest.getDescripcion());
             actividad.setEstado(actividadRequest.getEstado());
+
+            // ✅ NUEVOS CAMPOS
+            actividad.setPrioridad(
+                    actividadRequest.getPrioridad() != null
+                            ? actividadRequest.getPrioridad()
+                            : "media"
+            );
+            actividad.setPorcentajeAvance(
+                    actividadRequest.getPorcentajeAvance() != null
+                            ? actividadRequest.getPorcentajeAvance()
+                            : BigDecimal.ZERO
+            );
+
             actividad.setFechaInicio(actividadRequest.getFechaInicio());
             actividad.setFechaFin(actividadRequest.getFechaFin());
             actividad.setUrlEvidencia(actividadRequest.getUrlEvidencia());
             actividad.setObservaciones(actividadRequest.getObservaciones());
+
             cronogramaActividadProyectoRepository.save(actividad);
         }
     }
@@ -532,8 +556,9 @@ public class ProyectoServiceImpl implements ProyectoService {
         return obtenerDetalleCompleto(proyectoCreado.getProyecto().getId());
     }
 
-    // En ProyectoServiceImpl.java
-
+    // =====================================================
+    // CAMBIAR ESTADO PROYECTO
+    // =====================================================
     @Override
     @Transactional
     public ProyectoResponse cambiarEstadoProyecto(Long id, Boolean estado) {
@@ -546,6 +571,9 @@ public class ProyectoServiceImpl implements ProyectoService {
         return ProyectoMapper.toResponse(actualizado);
     }
 
+    // =====================================================
+    // ACTUALIZAR ESTADO PROYECTO
+    // =====================================================
     @Override
     @Transactional
     public ProyectoResponse actualizarEstadoProyecto(Long id, Long estadoProyectoId) {

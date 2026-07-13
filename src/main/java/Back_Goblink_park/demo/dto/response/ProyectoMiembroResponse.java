@@ -45,4 +45,6 @@ public class ProyectoMiembroResponse {
     private LocalDateTime fechaAsignacion;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+
 }

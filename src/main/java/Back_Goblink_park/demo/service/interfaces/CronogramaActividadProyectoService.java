@@ -1,8 +1,10 @@
 package Back_Goblink_park.demo.service.interfaces;
 
+import Back_Goblink_park.demo.dto.request.CronogramaActividadCompletarRequest;
 import Back_Goblink_park.demo.dto.request.CronogramaActividadProyectoRequest;
 import Back_Goblink_park.demo.dto.response.CronogramaActividadProyectoResponse;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public interface CronogramaActividadProyectoService {
@@ -42,12 +44,12 @@ public interface CronogramaActividadProyectoService {
     );
 
     // =====================================================
-    // LISTAR POR RESPONSABLE
+    // LISTAR POR MIEMBRO DEL PROYECTO
     // =====================================================
 
     List<CronogramaActividadProyectoResponse>
-    listarPorResponsable(
-            Long responsableId
+    listarPorMiembro(
+            Long proyectoMiembroId
     );
 
     // =====================================================
@@ -75,5 +77,32 @@ public interface CronogramaActividadProyectoService {
 
     void eliminarActividad(
             Long id
+    );
+
+    // =====================================================
+    // MARCAR ACTIVIDAD COMO COMPLETADA  ← NUEVO
+    // =====================================================
+
+    CronogramaActividadProyectoResponse
+    marcarActividadCompletada(
+            Long actividadId
+    );
+
+    // =====================================================
+    // RECALCULAR AVANCE DEL PROYECTO  ← NUEVO
+    // =====================================================
+
+    BigDecimal recalcularAvanceProyecto(
+            Long proyectoId
+    );
+
+    // =====================================================
+    // MARCAR ACTIVIDAD COMO COMPLETADA CON EVIDENCIA
+    // =====================================================
+
+    CronogramaActividadProyectoResponse
+    marcarActividadCompletadaConEvidencia(
+            Long actividadId,
+            CronogramaActividadCompletarRequest request
     );
 }

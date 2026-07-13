@@ -2,6 +2,7 @@ package Back_Goblink_park.demo.dto.response;
 
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -27,12 +28,12 @@ public class CronogramaActividadProyectoResponse {
     private String proyectoNombre;
 
     // =====================================================
-    // RESPONSABLE PROYECTO
+    // MIEMBRO DEL PROYECTO (RESPONSABLE)
     // =====================================================
 
-    private Long responsableId;
+    private Long proyectoMiembroId;
 
-    private String responsableTitulo;
+    private String proyectoMiembroRol;
 
     // =====================================================
     // USUARIO RESPONSABLE
@@ -41,6 +42,8 @@ public class CronogramaActividadProyectoResponse {
     private Long usuarioResponsableId;
 
     private String usuarioResponsableNombre;
+
+    private String usuarioResponsableEmail;
 
     // =====================================================
     // INFORMACIÓN
@@ -57,6 +60,18 @@ public class CronogramaActividadProyectoResponse {
     private String estado;
 
     // =====================================================
+    // PRIORIDAD
+    // =====================================================
+
+    private String prioridad;
+
+    // =====================================================
+    // AVANCE
+    // =====================================================
+
+    private BigDecimal porcentajeAvance;
+
+    // =====================================================
     // FECHAS
     // =====================================================
 
@@ -65,10 +80,18 @@ public class CronogramaActividadProyectoResponse {
     private LocalDate fechaFin;
 
     // =====================================================
-    // EVIDENCIA
+    // EVIDENCIA - URL
     // =====================================================
 
     private String urlEvidencia;
+
+    // =====================================================
+    // EVIDENCIA - IMAGEN BASE64 (NUEVOS CAMPOS)
+    // =====================================================
+
+    private String imagenBase64;
+
+    private String tipoImagen;
 
     // =====================================================
     // OBSERVACIONES

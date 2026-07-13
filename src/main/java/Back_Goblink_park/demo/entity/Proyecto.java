@@ -174,17 +174,12 @@ public class Proyecto {
             orphanRemoval = true
     )
 
-    private java.util.List<ResponsableProyecto> responsables;
 
     // -----------------------------------------------------
     // SEGUIMIENTOS
     // -----------------------------------------------------
 
-    @OneToMany(
-            mappedBy = "proyecto",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+
 
     private java.util.List<SeguimientoProyecto> seguimientos;
 

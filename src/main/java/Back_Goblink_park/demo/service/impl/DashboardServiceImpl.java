@@ -2,7 +2,7 @@ package Back_Goblink_park.demo.service.impl;
 
 import Back_Goblink_park.demo.dto.response.dashboard.*;
 import Back_Goblink_park.demo.entity.CronogramaActividadProyecto;
-import Back_Goblink_park.demo.repository.CronogramaActividadProyectoRepository; // ← IMPORTANTE
+import Back_Goblink_park.demo.repository.CronogramaActividadProyectoRepository;
 import Back_Goblink_park.demo.repository.ProyectoMiembroRepository;
 import Back_Goblink_park.demo.repository.ProyectoRepository;
 import Back_Goblink_park.demo.repository.ReporteRepository;
@@ -30,8 +30,6 @@ public class DashboardServiceImpl implements DashboardService {
     private final ProyectoRepository proyectoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProyectoMiembroRepository proyectoMiembroRepository;
-
-    // ✅ AGREGADO: Repositorio para actividades vencidas
     private final CronogramaActividadProyectoRepository cronogramaRepository;
 
     // =========================================
@@ -61,9 +59,10 @@ public class DashboardServiceImpl implements DashboardService {
                 .miembrosActivos(proyectoMiembroRepository.countByEstadoTrue())
                 .build();
     }
+
     // =========================================
-// REPORTES POR CATEGORÍA
-// =========================================
+    // REPORTES POR CATEGORÍA
+    // =========================================
     @Override
     public List<DashboardGraficaResponse> obtenerReportesPorCategoria() {
         return reporteRepository.countReportesPorCategoria()
@@ -77,8 +76,8 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     // =========================================
-// REPORTES POR PRIORIDAD
-// =========================================
+    // REPORTES POR PRIORIDAD
+    // =========================================
     @Override
     public List<DashboardGraficaResponse> obtenerReportesPorPrioridad() {
         return reporteRepository.countReportesPorPrioridad()
@@ -92,7 +91,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     // =========================================
-    // ACTIVIDADES VENCIDAS
+    // ACTIVIDADES VENCIDAS - ✅ CORREGIDO
     // =========================================
     @Override
     public List<ActividadVencidaDTO> obtenerActividadesVencidas() {
@@ -107,18 +106,25 @@ public class DashboardServiceImpl implements DashboardService {
                 .limit(5)
                 .toList();
 
-        return vencidas.stream().map(a -> ActividadVencidaDTO.builder()
-                .id(a.getId())
-                .proyectoId(a.getProyecto().getId())
-                .nombreActividad(a.getNombre())
-                .proyectoNombre(a.getProyecto() != null ? a.getProyecto().getNombre() : "Sin Proyecto")
-                .fechaLimite(a.getFechaFin())
-                .diasRetraso((int) java.time.temporal.ChronoUnit.DAYS.between(a.getFechaFin(), hoy))
-                .responsableNombre(a.getResponsable() != null &&
-                        a.getResponsable().getUsuarioResponsable() != null ?
-                        a.getResponsable().getUsuarioResponsable().getNombres() : "Sin asignar")
-                .build()
-        ).toList();
+        return vencidas.stream().map(a -> {
+            // ✅ EXTRAER NOMBRE DEL RESPONSABLE DESDE ProyectoMiembro
+            String nombreResponsable = "Sin asignar";
+
+            if (a.getProyectoMiembro() != null &&
+                    a.getProyectoMiembro().getUsuario() != null) {
+                nombreResponsable = a.getProyectoMiembro().getUsuario().getNombres();
+            }
+
+            return ActividadVencidaDTO.builder()
+                    .id(a.getId())
+                    .proyectoId(a.getProyecto().getId())
+                    .nombreActividad(a.getNombre())
+                    .proyectoNombre(a.getProyecto() != null ? a.getProyecto().getNombre() : "Sin Proyecto")
+                    .fechaLimite(a.getFechaFin())
+                    .diasRetraso((int) java.time.temporal.ChronoUnit.DAYS.between(a.getFechaFin(), hoy))
+                    .responsableNombre(nombreResponsable)
+                    .build();
+        }).toList();
     }
 
     // =========================================

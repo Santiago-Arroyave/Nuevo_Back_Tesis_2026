@@ -3,8 +3,6 @@ package Back_Goblink_park.demo.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.CascadeType;
 import java.time.LocalDateTime;
 
 @Entity
@@ -55,7 +53,6 @@ public class Usuario {
     @Column(name = "foto_perfil", columnDefinition = "TEXT")
     private String fotoPerfil;
 
-
     // =====================================================
     // CONTROL
     // =====================================================
@@ -98,17 +95,6 @@ public class Usuario {
     private List<Reporte> reportesValidados;
 
     // =====================================================
-    // RESPONSABILIDADES EN PROYECTOS
-    // =====================================================
-
-    @OneToMany(
-            mappedBy = "usuarioResponsable",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-
-    private List<ResponsableProyecto> responsabilidadesProyecto;
-    // =====================================================
     // COMENTARIOS
     // =====================================================
 
@@ -116,9 +102,6 @@ public class Usuario {
             mappedBy = "usuario"
     )
     private List<ComentarioReporte> comentarios;
-    // =====================================================
-    // MÉTODOS AUTOMÁTICOS
-    // =====================================================
 
     // =====================================================
     // SEGUIMIENTOS REALIZADOS
@@ -129,7 +112,6 @@ public class Usuario {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-
     private List<SeguimientoProyecto> seguimientosProyecto;
 
     // =====================================================
@@ -141,14 +123,15 @@ public class Usuario {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-
     private List<ProyectoMiembro> proyectosParticipando;
+
+    // =====================================================
+    // MÉTODOS AUTOMÁTICOS
+    // =====================================================
 
     @PrePersist
     protected void onCreate() {
-
         LocalDateTime now = LocalDateTime.now();
-
         fechaRegistro = now;
         createdAt = now;
         updatedAt = now;
@@ -156,7 +139,6 @@ public class Usuario {
 
     @PreUpdate
     protected void onUpdate() {
-
         updatedAt = LocalDateTime.now();
     }
 }

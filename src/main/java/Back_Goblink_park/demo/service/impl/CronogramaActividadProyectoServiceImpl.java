@@ -1,27 +1,25 @@
 package Back_Goblink_park.demo.service.impl;
 
 import Back_Goblink_park.demo.dto.mapper.CronogramaActividadProyectoMapper;
-
+import Back_Goblink_park.demo.dto.request.CronogramaActividadCompletarRequest;
 import Back_Goblink_park.demo.dto.request.CronogramaActividadProyectoRequest;
-
 import Back_Goblink_park.demo.dto.response.CronogramaActividadProyectoResponse;
-
 import Back_Goblink_park.demo.entity.CronogramaActividadProyecto;
 import Back_Goblink_park.demo.entity.Proyecto;
-import Back_Goblink_park.demo.entity.ResponsableProyecto;
-
+import Back_Goblink_park.demo.entity.ProyectoMiembro;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
-
 import Back_Goblink_park.demo.repository.CronogramaActividadProyectoRepository;
+import Back_Goblink_park.demo.repository.ProyectoMiembroRepository;
 import Back_Goblink_park.demo.repository.ProyectoRepository;
-import Back_Goblink_park.demo.repository.ResponsableProyectoRepository;
-
 import Back_Goblink_park.demo.service.interfaces.CronogramaActividadProyectoService;
 
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -33,116 +31,95 @@ public class CronogramaActividadProyectoServiceImpl
     // REPOSITORIES
     // =====================================================
 
-    private final CronogramaActividadProyectoRepository
-            actividadRepository;
+    private final CronogramaActividadProyectoRepository actividadRepository;
+    private final ProyectoRepository proyectoRepository;
+    private final ProyectoMiembroRepository proyectoMiembroRepository;
 
-    private final ProyectoRepository
-            proyectoRepository;
+    // =====================================================
+    // MÉTODO AUXILIAR: BUSCAR MIEMBRO POR USUARIO O ID DIRECTO
+    // =====================================================
 
-    private final ResponsableProyectoRepository
-            responsableRepository;
+    /**
+     * Busca el ProyectoMiembro según los datos del request.
+     * Prioridad:
+     *   1. Si viene proyectoMiembroId → buscar por ese ID
+     *   2. Si viene usuarioId → buscar por usuario + proyecto
+     *   3. Si no viene ninguno → retornar null (sin responsable)
+     */
+    private ProyectoMiembro buscarMiembro(
+            Long proyectoId,
+            Long proyectoMiembroId,
+            Long usuarioId) {
+
+        // ✅ OPCIÓN 1: Si viene el ID directo del miembro
+        if (proyectoMiembroId != null) {
+            ProyectoMiembro miembro = proyectoMiembroRepository
+                    .findById(proyectoMiembroId)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Miembro del proyecto no encontrado (ID: " + proyectoMiembroId + ")"
+                    ));
+
+            if (!miembro.getProyecto().getId().equals(proyectoId)) {
+                throw new IllegalArgumentException(
+                        "El miembro seleccionado no pertenece a este proyecto"
+                );
+            }
+            return miembro;
+        }
+
+        // ✅ OPCIÓN 2: Si viene el ID del usuario, buscar el miembro por usuario + proyecto
+        if (usuarioId != null) {
+            List<ProyectoMiembro> miembros = proyectoMiembroRepository
+                    .findByProyectoId(proyectoId);
+
+            return miembros.stream()
+                    .filter(m -> m.getUsuario().getId().equals(usuarioId))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "El usuario (ID: " + usuarioId + ") no es miembro de este proyecto"
+                    ));
+        }
+
+        // ✅ OPCIÓN 3: Sin responsable
+        return null;
+    }
 
     // =====================================================
     // CREAR
     // =====================================================
 
     @Override
-    public CronogramaActividadProyectoResponse
-    crearActividad(
-            CronogramaActividadProyectoRequest request
-    ) {
+    public CronogramaActividadProyectoResponse crearActividad(
+            CronogramaActividadProyectoRequest request) {
 
-        // =============================================
-        // BUSCAR PROYECTO
-        // =============================================
+        Proyecto proyecto = proyectoRepository.findById(request.getProyectoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
 
-        Proyecto proyecto = proyectoRepository
-                .findById(request.getProyectoId())
+        // ✅ Buscar miembro usando el nuevo método auxiliar
+        ProyectoMiembro proyectoMiembro = buscarMiembro(
+                proyecto.getId(),
+                request.getProyectoMiembroId(),
+                request.getUsuarioId()
+        );
 
-                .orElseThrow(() ->
+        CronogramaActividadProyecto actividad = CronogramaActividadProyecto.builder()
+                .proyecto(proyecto)
+                .proyectoMiembro(proyectoMiembro)
+                .nombre(request.getNombre())
+                .descripcion(request.getDescripcion())
+                .estado(request.getEstado())
+                .prioridad(request.getPrioridad() != null ? request.getPrioridad() : "media")
+                .porcentajeAvance(request.getPorcentajeAvance() != null
+                        ? request.getPorcentajeAvance()
+                        : BigDecimal.ZERO)
+                .fechaInicio(request.getFechaInicio())
+                .fechaFin(request.getFechaFin())
+                .urlEvidencia(request.getUrlEvidencia())
+                .observaciones(request.getObservaciones())
+                .build();
 
-                        new ResourceNotFoundException(
-                                "Proyecto no encontrado"
-                        )
-                );
-
-        // =============================================
-        // BUSCAR RESPONSABLE
-        // =============================================
-
-        ResponsableProyecto responsable = null;
-
-        if (request.getResponsableId() != null) {
-
-            responsable = responsableRepository
-                    .findById(
-                            request.getResponsableId()
-                    )
-
-                    .orElseThrow(() ->
-
-                            new ResourceNotFoundException(
-                                    "Responsable no encontrado"
-                            )
-                    );
-        }
-
-        // =============================================
-        // CREAR ENTITY
-        // =============================================
-
-        CronogramaActividadProyecto actividad =
-                CronogramaActividadProyecto.builder()
-
-                        .proyecto(proyecto)
-
-                        .responsable(responsable)
-
-                        .nombre(
-                                request.getNombre()
-                        )
-
-                        .descripcion(
-                                request.getDescripcion()
-                        )
-
-                        .estado(
-                                request.getEstado()
-                        )
-
-                        .fechaInicio(
-                                request.getFechaInicio()
-                        )
-
-                        .fechaFin(
-                                request.getFechaFin()
-                        )
-
-                        .urlEvidencia(
-                                request.getUrlEvidencia()
-                        )
-
-                        .observaciones(
-                                request.getObservaciones()
-                        )
-
-                        .build();
-
-        // =============================================
-        // GUARDAR
-        // =============================================
-
-        CronogramaActividadProyecto guardada =
-                actividadRepository.save(
-                        actividad
-                );
-
-        // =============================================
-        // RESPONSE
-        // =============================================
-
-        return CronogramaActividadProyectoMapper
-                .toResponse(guardada);
+        CronogramaActividadProyecto guardada = actividadRepository.save(actividad);
+        return CronogramaActividadProyectoMapper.toResponse(guardada);
     }
 
     // =====================================================
@@ -150,18 +127,9 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
-    public List<CronogramaActividadProyectoResponse>
-    listarActividades() {
-
-        return actividadRepository.findAll()
-
-                .stream()
-
-                .map(
-                        CronogramaActividadProyectoMapper
-                                ::toResponse
-                )
-
+    public List<CronogramaActividadProyectoResponse> listarActividades() {
+        return actividadRepository.findAll().stream()
+                .map(CronogramaActividadProyectoMapper::toResponse)
                 .toList();
     }
 
@@ -170,21 +138,10 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
-    public CronogramaActividadProyectoResponse
-    obtenerActividad(Long id) {
-
-        CronogramaActividadProyecto actividad =
-                actividadRepository.findById(id)
-
-                        .orElseThrow(() ->
-
-                                new ResourceNotFoundException(
-                                        "Actividad no encontrada"
-                                )
-                        );
-
-        return CronogramaActividadProyectoMapper
-                .toResponse(actividad);
+    public CronogramaActividadProyectoResponse obtenerActividad(Long id) {
+        CronogramaActividadProyecto actividad = actividadRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
+        return CronogramaActividadProyectoMapper.toResponse(actividad);
     }
 
     // =====================================================
@@ -192,46 +149,20 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
-    public List<CronogramaActividadProyectoResponse>
-    listarPorProyecto(Long proyectoId) {
-
-        return actividadRepository
-
-                .findByProyectoIdOrderByFechaInicioAsc(
-                        proyectoId
-                )
-
-                .stream()
-
-                .map(
-                        CronogramaActividadProyectoMapper
-                                ::toResponse
-                )
-
+    public List<CronogramaActividadProyectoResponse> listarPorProyecto(Long proyectoId) {
+        return actividadRepository.findByProyectoIdOrderByFechaInicioAsc(proyectoId).stream()
+                .map(CronogramaActividadProyectoMapper::toResponse)
                 .toList();
     }
 
     // =====================================================
-    // LISTAR POR RESPONSABLE
+    // LISTAR POR MIEMBRO DEL PROYECTO
     // =====================================================
 
     @Override
-    public List<CronogramaActividadProyectoResponse>
-    listarPorResponsable(Long responsableId) {
-
-        return actividadRepository
-
-                .findByResponsableId(
-                        responsableId
-                )
-
-                .stream()
-
-                .map(
-                        CronogramaActividadProyectoMapper
-                                ::toResponse
-                )
-
+    public List<CronogramaActividadProyectoResponse> listarPorMiembro(Long proyectoMiembroId) {
+        return actividadRepository.findByProyectoMiembroId(proyectoMiembroId).stream()
+                .map(CronogramaActividadProyectoMapper::toResponse)
                 .toList();
     }
 
@@ -240,20 +171,9 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
-    public List<CronogramaActividadProyectoResponse>
-    listarPorEstado(String estado) {
-
-        return actividadRepository
-
-                .findByEstado(estado)
-
-                .stream()
-
-                .map(
-                        CronogramaActividadProyectoMapper
-                                ::toResponse
-                )
-
+    public List<CronogramaActividadProyectoResponse> listarPorEstado(String estado) {
+        return actividadRepository.findByEstado(estado).stream()
+                .map(CronogramaActividadProyectoMapper::toResponse)
                 .toList();
     }
 
@@ -262,104 +182,40 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
-    public CronogramaActividadProyectoResponse
-    actualizarActividad(
-            Long id,
-            CronogramaActividadProyectoRequest request
-    ) {
+    public CronogramaActividadProyectoResponse actualizarActividad(
+            Long id, CronogramaActividadProyectoRequest request) {
 
-        CronogramaActividadProyecto actividad =
-                actividadRepository.findById(id)
+        CronogramaActividadProyecto actividad = actividadRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
 
-                        .orElseThrow(() ->
+        Proyecto proyecto = proyectoRepository.findById(request.getProyectoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
 
-                                new ResourceNotFoundException(
-                                        "Actividad no encontrada"
-                                )
-                        );
-
-        // =============================================
-        // BUSCAR PROYECTO
-        // =============================================
-
-        Proyecto proyecto = proyectoRepository
-                .findById(request.getProyectoId())
-
-                .orElseThrow(() ->
-
-                        new ResourceNotFoundException(
-                                "Proyecto no encontrado"
-                        )
-                );
-
-        // =============================================
-        // BUSCAR RESPONSABLE
-        // =============================================
-
-        ResponsableProyecto responsable = null;
-
-        if (request.getResponsableId() != null) {
-
-            responsable = responsableRepository
-                    .findById(
-                            request.getResponsableId()
-                    )
-
-                    .orElseThrow(() ->
-
-                            new ResourceNotFoundException(
-                                    "Responsable no encontrado"
-                            )
-                    );
-        }
-
-        // =============================================
-        // ACTUALIZAR
-        // =============================================
+        // ✅ Buscar miembro usando el nuevo método auxiliar
+        ProyectoMiembro proyectoMiembro = buscarMiembro(
+                proyecto.getId(),
+                request.getProyectoMiembroId(),
+                request.getUsuarioId()
+        );
 
         actividad.setProyecto(proyecto);
+        actividad.setProyectoMiembro(proyectoMiembro);
+        actividad.setNombre(request.getNombre());
+        actividad.setDescripcion(request.getDescripcion());
+        actividad.setEstado(request.getEstado());
+        actividad.setPrioridad(request.getPrioridad() != null
+                ? request.getPrioridad()
+                : actividad.getPrioridad());
+        actividad.setPorcentajeAvance(request.getPorcentajeAvance() != null
+                ? request.getPorcentajeAvance()
+                : actividad.getPorcentajeAvance());
+        actividad.setFechaInicio(request.getFechaInicio());
+        actividad.setFechaFin(request.getFechaFin());
+        actividad.setUrlEvidencia(request.getUrlEvidencia());
+        actividad.setObservaciones(request.getObservaciones());
 
-        actividad.setResponsable(responsable);
-
-        actividad.setNombre(
-                request.getNombre()
-        );
-
-        actividad.setDescripcion(
-                request.getDescripcion()
-        );
-
-        actividad.setEstado(
-                request.getEstado()
-        );
-
-        actividad.setFechaInicio(
-                request.getFechaInicio()
-        );
-
-        actividad.setFechaFin(
-                request.getFechaFin()
-        );
-
-        actividad.setUrlEvidencia(
-                request.getUrlEvidencia()
-        );
-
-        actividad.setObservaciones(
-                request.getObservaciones()
-        );
-
-        // =============================================
-        // GUARDAR
-        // =============================================
-
-        CronogramaActividadProyecto actualizada =
-                actividadRepository.save(
-                        actividad
-                );
-
-        return CronogramaActividadProyectoMapper
-                .toResponse(actualizada);
+        CronogramaActividadProyecto actualizada = actividadRepository.save(actividad);
+        return CronogramaActividadProyectoMapper.toResponse(actualizada);
     }
 
     // =====================================================
@@ -368,17 +224,116 @@ public class CronogramaActividadProyectoServiceImpl
 
     @Override
     public void eliminarActividad(Long id) {
-
-        CronogramaActividadProyecto actividad =
-                actividadRepository.findById(id)
-
-                        .orElseThrow(() ->
-
-                                new ResourceNotFoundException(
-                                        "Actividad no encontrada"
-                                )
-                        );
-
+        CronogramaActividadProyecto actividad = actividadRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
         actividadRepository.delete(actividad);
+    }
+
+    // =====================================================
+    // MARCAR ACTIVIDAD COMO COMPLETADA (SIN EVIDENCIA)
+    // =====================================================
+
+    @Override
+    @Transactional
+    public CronogramaActividadProyectoResponse marcarActividadCompletada(Long actividadId) {
+        CronogramaActividadProyecto actividad = actividadRepository.findById(actividadId)
+                .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
+
+        actividad.setEstado("completada");
+
+        if (actividad.getFechaFin() == null) {
+            actividad.setFechaFin(LocalDate.now());
+        }
+
+        CronogramaActividadProyecto actualizada = actividadRepository.save(actividad);
+
+        if (actividad.getProyecto() != null) {
+            recalcularAvanceProyecto(actividad.getProyecto().getId());
+        }
+
+        return CronogramaActividadProyectoMapper.toResponse(actualizada);
+    }
+
+    // =====================================================
+    // MARCAR ACTIVIDAD COMO COMPLETADA CON EVIDENCIA (BASE64)
+    // =====================================================
+
+    @Override
+    @Transactional
+    public CronogramaActividadProyectoResponse marcarActividadCompletadaConEvidencia(
+            Long actividadId,
+            CronogramaActividadCompletarRequest request) {
+
+        CronogramaActividadProyecto actividad = actividadRepository.findById(actividadId)
+                .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
+
+        actividad.setEstado("completada");
+
+        if (actividad.getFechaFin() == null) {
+            actividad.setFechaFin(LocalDate.now());
+        }
+
+        if (request != null) {
+            if (request.getDescripcionEvidencia() != null && !request.getDescripcionEvidencia().isEmpty()) {
+                actividad.setObservaciones(request.getDescripcionEvidencia());
+            }
+
+            if (request.getImagenBase64() != null && !request.getImagenBase64().isEmpty()) {
+                actividad.setImagenBase64(request.getImagenBase64());
+            }
+
+            if (request.getTipoImagen() != null && !request.getTipoImagen().isEmpty()) {
+                actividad.setTipoImagen(request.getTipoImagen());
+            }
+
+            if (request.getUrlEvidencia() != null && !request.getUrlEvidencia().isEmpty()) {
+                actividad.setUrlEvidencia(request.getUrlEvidencia());
+            }
+
+            if (request.getObservaciones() != null && !request.getObservaciones().isEmpty()) {
+                String obsExistente = actividad.getObservaciones() != null
+                        ? actividad.getObservaciones() : "";
+                actividad.setObservaciones(obsExistente + "\n" + request.getObservaciones());
+            }
+        }
+
+        CronogramaActividadProyecto actualizada = actividadRepository.save(actividad);
+
+        if (actividad.getProyecto() != null) {
+            recalcularAvanceProyecto(actividad.getProyecto().getId());
+        }
+
+        return CronogramaActividadProyectoMapper.toResponse(actualizada);
+    }
+
+    // =====================================================
+    // RECALCULAR AVANCE DEL PROYECTO
+    // =====================================================
+
+    @Override
+    @Transactional
+    public BigDecimal recalcularAvanceProyecto(Long proyectoId) {
+        List<CronogramaActividadProyecto> actividades = actividadRepository
+                .findByProyectoIdOrderByFechaInicioAsc(proyectoId);
+
+        if (actividades.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        long completadas = actividades.stream()
+                .filter(a -> "completada".equalsIgnoreCase(a.getEstado()))
+                .count();
+
+        BigDecimal porcentaje = BigDecimal.valueOf(completadas)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(actividades.size()), 2, RoundingMode.HALF_UP);
+
+        Proyecto proyecto = proyectoRepository.findById(proyectoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
+
+        proyecto.setPorcentajeAvance(porcentaje.doubleValue());
+        proyectoRepository.save(proyecto);
+
+        return porcentaje;
     }
 }

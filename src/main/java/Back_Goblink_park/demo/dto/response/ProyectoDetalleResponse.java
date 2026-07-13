@@ -25,8 +25,6 @@ public class ProyectoDetalleResponse {
 
     private List<ProyectoMiembroResponse> miembros;
 
-    private List<ResponsableProyectoResponse> responsables;
-
     private List<ProyectoObjetivoResponse> objetivos;
 
     private List<ProyectoMetaResponse> metas;
