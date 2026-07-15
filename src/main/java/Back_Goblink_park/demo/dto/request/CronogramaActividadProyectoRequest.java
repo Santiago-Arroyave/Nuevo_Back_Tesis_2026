@@ -11,10 +11,10 @@ import java.time.LocalDate;
 @Builder
 public class CronogramaActividadProyectoRequest {
 
-    // =====================================================
-    // PROYECTO
-    // =====================================================
+    private Long id; // Para saber si es actualización
+
     private Long proyectoId;
+
 
     // =====================================================
     // RESPONSABLE - DOS OPCIONES

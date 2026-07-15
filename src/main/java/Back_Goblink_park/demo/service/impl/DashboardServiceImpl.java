@@ -38,7 +38,6 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public DashboardResumenResponse obtenerResumen() {
 
-        // Contar actividades vencidas
         List<CronogramaActividadProyecto> actividadesVencidas = cronogramaRepository.findAll()
                 .stream()
                 .filter(a -> a.getFechaFin() != null &&
@@ -49,14 +48,17 @@ public class DashboardServiceImpl implements DashboardService {
         return DashboardResumenResponse.builder()
                 .totalReportes(reporteRepository.countByEliminadoFalse())
                 .reportesPendientes(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(1L))
-                .reportesEnRevision(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(2L))
+                .reportesEnRevision(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(5L))
                 .reportesResueltos(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(3L))
-                .reportesConvertidosProyecto(0L) // Temporal: Cambiar a countByEstadoReporteIdAndEliminadoFalse(4L) si 4 es el ID de "Convertido"
-                .reportesCriticos(reporteRepository.countByPrioridadIdAndEliminadoFalse(4L)) // Asumiendo 4 = Crítica
+                .reportesConvertidosProyecto(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(7L))
+                .reportesCriticos(reporteRepository.countByPrioridadIdAndEliminadoFalse(4L))
                 .actividadesVencidas((long) actividadesVencidas.size())
-                .proyectosActivos(proyectoRepository.countByEstadoTrueAndEliminadoFalse())
-                .proyectosFinalizados(0L) // Temporal: Cambiar a countByEstadoProyectoIdAndEliminadoFalse(XL)
-                .miembrosActivos(proyectoMiembroRepository.countByEstadoTrue())
+
+                // ✅ CORREGIDO: Usar estadoProyectoId específico
+                .proyectosActivos(proyectoRepository.countByEstadoProyectoIdAndEliminadoFalse(2L)) // 2 = En ejecución
+                .proyectosFinalizados(proyectoRepository.countByEstadoProyectoIdAndEliminadoFalse(4L)) // 4 = Finalizado
+
+                .miembrosActivos(usuarioRepository.countByEstadoTrue())
                 .build();
     }
 

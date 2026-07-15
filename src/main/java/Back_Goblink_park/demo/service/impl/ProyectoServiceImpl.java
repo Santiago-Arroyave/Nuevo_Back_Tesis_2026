@@ -383,41 +383,36 @@ public class ProyectoServiceImpl implements ProyectoService {
             CronogramaActividadProyecto actividad = new CronogramaActividadProyecto();
             actividad.setProyecto(proyecto);
 
-            // ✅ AHORA USA ProyectoMiembro EN LUGAR DE ResponsableProyecto
+            // ✅ 1. Intentar buscar por proyectoMiembroId (si viene)
             if (actividadRequest.getProyectoMiembroId() != null) {
                 ProyectoMiembro proyectoMiembro = proyectoMiembroRepository
                         .findById(actividadRequest.getProyectoMiembroId())
                         .orElseThrow(() -> new ResourceNotFoundException(
-                                "Miembro del proyecto no encontrado con ID: "
-                                        + actividadRequest.getProyectoMiembroId()
+                                "Miembro del proyecto no encontrado con ID: " + actividadRequest.getProyectoMiembroId()
                         ));
 
-                // Validar que el miembro pertenece al proyecto
                 if (!proyectoMiembro.getProyecto().getId().equals(proyecto.getId())) {
-                    throw new IllegalArgumentException(
-                            "El miembro seleccionado no pertenece a este proyecto"
-                    );
+                    throw new IllegalArgumentException("El miembro seleccionado no pertenece a este proyecto");
                 }
+                actividad.setProyectoMiembro(proyectoMiembro);
+            }
+            // ✅ 2. Si no viene proyectoMiembroId, buscar por usuarioId (lo que envía el frontend)
+            else if (actividadRequest.getUsuarioId() != null) {
+                ProyectoMiembro proyectoMiembro = proyectoMiembroRepository
+                        .findByProyectoIdAndUsuarioId(proyecto.getId(), actividadRequest.getUsuarioId())
+                        .orElseThrow(() -> new ResourceNotFoundException(
+                                "El usuario con ID " + actividadRequest.getUsuarioId() + " no es miembro de este proyecto"
+                        ));
 
                 actividad.setProyectoMiembro(proyectoMiembro);
             }
 
+            // Asignar el resto de campos
             actividad.setNombre(actividadRequest.getNombre());
             actividad.setDescripcion(actividadRequest.getDescripcion());
-            actividad.setEstado(actividadRequest.getEstado());
-
-            // ✅ NUEVOS CAMPOS
-            actividad.setPrioridad(
-                    actividadRequest.getPrioridad() != null
-                            ? actividadRequest.getPrioridad()
-                            : "media"
-            );
-            actividad.setPorcentajeAvance(
-                    actividadRequest.getPorcentajeAvance() != null
-                            ? actividadRequest.getPorcentajeAvance()
-                            : BigDecimal.ZERO
-            );
-
+            actividad.setEstado(actividadRequest.getEstado() != null ? actividadRequest.getEstado() : "pendiente");
+            actividad.setPrioridad(actividadRequest.getPrioridad() != null ? actividadRequest.getPrioridad() : "media");
+            actividad.setPorcentajeAvance(actividadRequest.getPorcentajeAvance() != null ? actividadRequest.getPorcentajeAvance() : BigDecimal.ZERO);
             actividad.setFechaInicio(actividadRequest.getFechaInicio());
             actividad.setFechaFin(actividadRequest.getFechaFin());
             actividad.setUrlEvidencia(actividadRequest.getUrlEvidencia());
