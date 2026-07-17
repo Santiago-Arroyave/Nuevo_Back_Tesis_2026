@@ -80,11 +80,10 @@ public class EvidenciaReporteServiceImpl implements EvidenciaReporteService {
     // LISTAR POR REPORTE
     // =====================================================
     @Override
+
     public List<EvidenciaReporteResponse> listarPorReporte(Long reporteId) {
-        return evidenciaRepository.findByReporteId(reporteId)
-                .stream()
-                .map(EvidenciaReporteMapper::toResponse)
-                .toList();
+        // ✅ Usamos la nueva consulta que garantiza el reporteId
+        return evidenciaRepository.findResponsesByReporteId(reporteId);
     }
 
     // =====================================================

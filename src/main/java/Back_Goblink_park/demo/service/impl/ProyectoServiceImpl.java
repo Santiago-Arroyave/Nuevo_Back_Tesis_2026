@@ -56,7 +56,7 @@ public class ProyectoServiceImpl implements ProyectoService {
     }
 
     // =====================================================
-    // CREAR PROYECTO COMPLETO
+    // CREAR PROYECTO COMPLETO (Con soporte para convertir reportes)
     // =====================================================
     @Override
     @Transactional
@@ -67,20 +67,31 @@ public class ProyectoServiceImpl implements ProyectoService {
 
         Proyecto proyectoGuardado = crearProyectoBase(request.getProyecto(), correoUsuario);
 
-        // Asociar reportes
+        // Asociar reportes y ACTUALIZAR SU ESTADO si se enviaron
         if (request.getReporteIds() != null && !request.getReporteIds().isEmpty()) {
             crearReportesAsociados(proyectoGuardado, request.getReporteIds());
+
+            // ✅ SOLUCIÓN: Buscar el estado "Convertido en proyecto"
+            EstadoReporte estadoConvertido = estadoReporteRepository.findByNombreIgnoreCase("Convertido en proyecto")
+                    .orElseThrow(() -> new ResourceNotFoundException("Estado 'Convertido en proyecto' no encontrado"));
+
+            // ✅ Actualizar cada reporte asociado
+            for (Long reporteId : request.getReporteIds()) {
+                if (reporteId != null) {
+                    Reporte reporte = reporteRepository.findById(reporteId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado con ID: " + reporteId));
+
+                    reporte.setEstadoReporte(estadoConvertido);
+                    reporte.setObservacionesAdmin("Reporte convertido en proyecto ambiental");
+                    reporteRepository.save(reporte);
+                }
+            }
         }
 
         // Crear miembros
         if (request.getMiembros() != null && !request.getMiembros().isEmpty()) {
             crearMiembrosProyecto(proyectoGuardado, request.getMiembros());
         }
-
-        // ❌ ELIMINADO: Ya no se crean responsables separados
-        // if (request.getResponsables() != null && !request.getResponsables().isEmpty()) {
-        //     crearResponsablesProyecto(proyectoGuardado, request.getResponsables());
-        // }
 
         // Crear objetivos
         if (request.getObjetivos() != null && !request.getObjetivos().isEmpty()) {

@@ -23,13 +23,6 @@ public class Usuario {
     @Column(name = "id_usuario")
     private Long id;
 
-    // =====================================================
-    // RELACIÓN CON ROL
-    // =====================================================
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_rol", nullable = false)
-    private Rol rol;
 
     // =====================================================
     // DATOS PERSONALES
@@ -75,6 +68,14 @@ public class Usuario {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // =====================================================
+    // RELACIÓN CON ROL
+    // =====================================================
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_rol", nullable = false)
+    private Rol rol;
 
     // =====================================================
     // REPORTES CREADOS
