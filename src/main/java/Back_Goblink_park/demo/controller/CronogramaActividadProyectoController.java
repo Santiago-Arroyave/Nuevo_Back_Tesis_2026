@@ -102,7 +102,7 @@ public class CronogramaActividadProyectoController {
     }
 
     // =====================================================
-    // MARCAR ACTIVIDAD COMO COMPLETADA (CON IMAGEN → BASE64)
+    // MARCAR ACTIVIDAD COMO COMPLETADA (CON MÚLTIPLES IMÁGENES → BASE64)
     // =====================================================
 
     @PatchMapping(
@@ -111,42 +111,20 @@ public class CronogramaActividadProyectoController {
     )
     public ResponseEntity<CronogramaActividadProyectoResponse> marcarActividadCompletada(
             @PathVariable Long id,
-            @RequestPart(value = "file", required = false) MultipartFile file,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files, // ✅ CAMBIADO A LISTA
             @RequestPart(value = "descripcionEvidencia", required = false) String descripcionEvidencia,
             @RequestPart(value = "observaciones", required = false) String observaciones) {
 
-        CronogramaActividadCompletarRequest request = CronogramaActividadCompletarRequest.builder()
-                .descripcionEvidencia(descripcionEvidencia)
-                .observaciones(observaciones)
-                .build();
+        // ✅ AGREGA ESTOS LOGS PARA DEPURAR
+        System.out.println("🔍 [CONTROLLER] ID Actividad: " + id);
+        System.out.println("🔍 [CONTROLLER] Cantidad de archivos recibidos: " + (files != null ? files.size() : "NULL"));
+        System.out.println("🔍 [CONTROLLER] Observaciones: " + observaciones);
 
-        // ✅ SI HAY ARCHIVO, CONVERTIRLO A BASE64
-        if (file != null && !file.isEmpty()) {
-            try {
-                // Convertir archivo a bytes
-                byte[] bytes = file.getBytes();
+        // Llamar al service pasando la lista de archivos directamente
+        CronogramaActividadProyectoResponse response = actividadService.marcarActividadCompletadaConEvidencia(
+                id, files, descripcionEvidencia, observaciones
+        );
 
-                // ✅ CODIFICAR A BASE64
-                String base64String = Base64.getEncoder().encodeToString(bytes);
-
-                // Guardar en el request
-                request.setImagenBase64(base64String);
-
-                // Guardar tipo de imagen (image/jpeg, image/png, etc.)
-                request.setTipoImagen(file.getContentType());
-
-                System.out.println("✅ Imagen convertida a Base64 exitosamente");
-                System.out.println("Tipo: " + file.getContentType());
-                System.out.println("Tamaño Base64: " + base64String.length() + " caracteres");
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
-        }
-
-        // Llamar al service con el request completo
-        CronogramaActividadProyectoResponse response = actividadService.marcarActividadCompletadaConEvidencia(id, request);
         return ResponseEntity.ok(response);
     }
 

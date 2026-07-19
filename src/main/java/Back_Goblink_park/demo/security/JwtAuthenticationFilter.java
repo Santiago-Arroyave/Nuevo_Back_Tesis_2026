@@ -1,5 +1,6 @@
 package Back_Goblink_park.demo.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -70,8 +71,16 @@ public class JwtAuthenticationFilter
         // EXTRAER USERNAME/CORREO
         // =========================================
 
-        userCorreo =
-                jwtService.extractUsername(jwt);
+        try {
+            userCorreo = jwtService.extractUsername(jwt);
+        } catch (ExpiredJwtException e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write(
+                    "{\"error\":\"El token ha expirado\"}"
+            );
+            return;
+        }
 
         // =========================================
         // SI NO ESTÁ AUTENTICADO

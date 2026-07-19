@@ -3,6 +3,7 @@ package Back_Goblink_park.demo.service.interfaces;
 import Back_Goblink_park.demo.dto.request.CronogramaActividadCompletarRequest;
 import Back_Goblink_park.demo.dto.request.CronogramaActividadProyectoRequest;
 import Back_Goblink_park.demo.dto.response.CronogramaActividadProyectoResponse;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -103,6 +104,8 @@ public interface CronogramaActividadProyectoService {
     CronogramaActividadProyectoResponse
     marcarActividadCompletadaConEvidencia(
             Long actividadId,
-            CronogramaActividadCompletarRequest request
+            List<MultipartFile> files,
+            String descripcionEvidencia,
+            String observaciones
     );
 }

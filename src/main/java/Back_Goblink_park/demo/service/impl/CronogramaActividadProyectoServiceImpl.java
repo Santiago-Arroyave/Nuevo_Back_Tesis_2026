@@ -4,10 +4,12 @@ import Back_Goblink_park.demo.dto.mapper.CronogramaActividadProyectoMapper;
 import Back_Goblink_park.demo.dto.request.CronogramaActividadCompletarRequest;
 import Back_Goblink_park.demo.dto.request.CronogramaActividadProyectoRequest;
 import Back_Goblink_park.demo.dto.response.CronogramaActividadProyectoResponse;
+import Back_Goblink_park.demo.entity.ActividadEvidencia;
 import Back_Goblink_park.demo.entity.CronogramaActividadProyecto;
 import Back_Goblink_park.demo.entity.Proyecto;
 import Back_Goblink_park.demo.entity.ProyectoMiembro;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
+import Back_Goblink_park.demo.repository.ActividadEvidenciaRepository;
 import Back_Goblink_park.demo.repository.CronogramaActividadProyectoRepository;
 import Back_Goblink_park.demo.repository.ProyectoMiembroRepository;
 import Back_Goblink_park.demo.repository.ProyectoRepository;
@@ -16,10 +18,12 @@ import Back_Goblink_park.demo.service.interfaces.CronogramaActividadProyectoServ
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -34,6 +38,7 @@ public class CronogramaActividadProyectoServiceImpl
     private final CronogramaActividadProyectoRepository actividadRepository;
     private final ProyectoRepository proyectoRepository;
     private final ProyectoMiembroRepository proyectoMiembroRepository;
+    private final ActividadEvidenciaRepository actividadEvidenciaRepository;
 
     // =====================================================
     // MÉTODO AUXILIAR: BUSCAR MIEMBRO POR USUARIO O ID DIRECTO
@@ -258,52 +263,72 @@ public class CronogramaActividadProyectoServiceImpl
     // MARCAR ACTIVIDAD COMO COMPLETADA CON EVIDENCIA (BASE64)
     // =====================================================
 
+
+    // =====================================================
+    // MARCAR ACTIVIDAD COMO COMPLETADA CON MÚLTIPLES EVIDENCIAS
+    // =====================================================
+
     @Override
     @Transactional
     public CronogramaActividadProyectoResponse marcarActividadCompletadaConEvidencia(
             Long actividadId,
-            CronogramaActividadCompletarRequest request) {
+            List<MultipartFile> files,
+            String descripcionEvidencia,
+            String observaciones) {
 
         CronogramaActividadProyecto actividad = actividadRepository.findById(actividadId)
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
 
+        // 1. Marcar como completada
         actividad.setEstado("completada");
-
         if (actividad.getFechaFin() == null) {
             actividad.setFechaFin(LocalDate.now());
         }
 
-        if (request != null) {
-            if (request.getDescripcionEvidencia() != null && !request.getDescripcionEvidencia().isEmpty()) {
-                actividad.setObservaciones(request.getDescripcionEvidencia());
-            }
+        // 2. Actualizar observaciones si vienen
+        if (observaciones != null && !observaciones.isEmpty()) {
+            String obsExistente = actividad.getObservaciones() != null ? actividad.getObservaciones() : "";
+            actividad.setObservaciones(obsExistente + "\n" + observaciones);
+        }
 
-            if (request.getImagenBase64() != null && !request.getImagenBase64().isEmpty()) {
-                actividad.setImagenBase64(request.getImagenBase64());
-            }
+        // 3. PROCESAR MÚLTIPLES ARCHIVOS
+        if (files != null && !files.isEmpty()) {
+            for (MultipartFile file : files) {
+                if (file != null && !file.isEmpty()) {
+                    try {
+                        byte[] bytes = file.getBytes();
+                        String base64String = Base64.getEncoder().encodeToString(bytes);
 
-            if (request.getTipoImagen() != null && !request.getTipoImagen().isEmpty()) {
-                actividad.setTipoImagen(request.getTipoImagen());
-            }
+                        ActividadEvidencia evidencia = ActividadEvidencia.builder()
+                                .actividad(actividad)
+                                .imagenBase64(base64String)
+                                .tipoImagen(file.getContentType())
+                                .descripcion(descripcionEvidencia)
+                                .build();
 
-            if (request.getUrlEvidencia() != null && !request.getUrlEvidencia().isEmpty()) {
-                actividad.setUrlEvidencia(request.getUrlEvidencia());
-            }
+                        actividadEvidenciaRepository.save(evidencia);
+                        actividad.getEvidencias().add(evidencia);
 
-            if (request.getObservaciones() != null && !request.getObservaciones().isEmpty()) {
-                String obsExistente = actividad.getObservaciones() != null
-                        ? actividad.getObservaciones() : "";
-                actividad.setObservaciones(obsExistente + "\n" + request.getObservaciones());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        throw new RuntimeException("Error al procesar el archivo: " + file.getOriginalFilename());
+                    }
+                }
             }
         }
 
-        CronogramaActividadProyecto actualizada = actividadRepository.save(actividad);
+        // 4. Guardar la actividad actualizada
+        actividadRepository.save(actividad);
 
+        // 5. Recalcular avance del proyecto
         if (actividad.getProyecto() != null) {
             recalcularAvanceProyecto(actividad.getProyecto().getId());
         }
 
-        return CronogramaActividadProyectoMapper.toResponse(actualizada);
+        // ✅ 6. FORZAR CARGA DE LA COLECCIÓN LAZY
+        actividad.getEvidencias().size(); // Esto fuerza a Hibernate a cargar la colección
+
+        return CronogramaActividadProyectoMapper.toResponse(actividad);
     }
 
     // =====================================================

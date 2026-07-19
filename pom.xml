@@ -18,6 +18,7 @@
 		<java.version>21</java.version>
 		<maven.compiler.source>21</maven.compiler.source>
 		<maven.compiler.target>21</maven.compiler.target>
+		<lombok.version>1.18.34</lombok.version> <!-- 👈 NUEVO: versión explícita de Lombok -->
 	</properties>
 
 	<dependencies>
@@ -90,11 +91,12 @@
 			<version>2.2.19</version>
 		</dependency>
 
-		<!-- LOMBOK -->
+		<!-- LOMBOK con versión explícita y scope provided -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<optional>true</optional>
+			<version>${lombok.version}</version> <!-- 👈 AHORA USA LA VERSIÓN EXPLÍCITA -->
+			<scope>provided</scope> <!-- 👈 CAMBIADO: mejor para compilación -->
 		</dependency>
 
 		<!-- DEVTOOLS (solo desarrollo) -->
@@ -135,6 +137,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.13.0</version> <!-- 👈 NUEVO: versión explícita del plugin -->
 				<configuration>
 					<source>21</source>
 					<target>21</target>
@@ -142,6 +145,7 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version> <!-- 👈 AHORA USA LA VERSIÓN EXPLÍCITA -->
 						</path>
 					</annotationProcessorPaths>
 				</configuration>

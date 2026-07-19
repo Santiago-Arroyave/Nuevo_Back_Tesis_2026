@@ -5,6 +5,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List; // ✅ Agregar este import
 
 @Getter
 @Setter
@@ -98,6 +99,8 @@ public class CronogramaActividadProyectoResponse {
     // =====================================================
 
     private String observaciones;
+
+    private List<ActividadEvidenciaResponse> evidencias; // ✅ Este campo ahora funcionará
 
     // =====================================================
     // AUDITORÍA

@@ -5,189 +5,36 @@ import Back_Goblink_park.demo.entity.CronogramaActividadProyecto;
 
 public class CronogramaActividadProyectoMapper {
 
-    // =====================================================
-    // ENTITY -> RESPONSE
-    // =====================================================
+        public static CronogramaActividadProyectoResponse toResponse(CronogramaActividadProyecto actividad) {
+                if (actividad == null) return null;
 
-    public static CronogramaActividadProyectoResponse
-    toResponse(
-            CronogramaActividadProyecto actividad
-    ) {
+                return CronogramaActividadProyectoResponse.builder()
+                        .id(actividad.getId())
+                        .proyectoId(actividad.getProyecto() != null ? actividad.getProyecto().getId() : null)
+                        .proyectoNombre(actividad.getProyecto() != null ? actividad.getProyecto().getNombre() : null)
+                        .proyectoMiembroId(actividad.getProyectoMiembro() != null ? actividad.getProyectoMiembro().getId() : null)
+                        .proyectoMiembroRol(actividad.getProyectoMiembro() != null ? actividad.getProyectoMiembro().getRolEnProyecto() : null)
+                        .usuarioResponsableId(actividad.getProyectoMiembro() != null ? actividad.getProyectoMiembro().getUsuario().getId() : null)
+                        .usuarioResponsableNombre(actividad.getProyectoMiembro() != null ? actividad.getProyectoMiembro().getUsuario().getNombres() : null)
+                        .usuarioResponsableEmail(actividad.getProyectoMiembro() != null ? actividad.getProyectoMiembro().getUsuario().getCorreo() : null)
+                        .nombre(actividad.getNombre())
+                        .descripcion(actividad.getDescripcion())
+                        .estado(actividad.getEstado())
+                        .prioridad(actividad.getPrioridad())
+                        .porcentajeAvance(actividad.getPorcentajeAvance())
+                        .fechaInicio(actividad.getFechaInicio())
+                        .fechaFin(actividad.getFechaFin())
+                        .urlEvidencia(actividad.getUrlEvidencia())
+                        .observaciones(actividad.getObservaciones())
 
-        return CronogramaActividadProyectoResponse
-                .builder()
-
-                // =================================================
-                // ID
-                // =================================================
-
-                .id(
-                        actividad.getId()
-                )
-
-                // =================================================
-                // PROYECTO
-                // =================================================
-
-                .proyectoId(
-                        actividad.getProyecto()
-                                .getId()
-                )
-
-                .proyectoNombre(
-                        actividad.getProyecto()
-                                .getNombre()
-                )
-
-                // =================================================
-                // MIEMBRO DEL PROYECTO (RESPONSABLE)
-                // =================================================
-
-                .proyectoMiembroId(
-
-                        actividad.getProyectoMiembro() != null
-
-                                ? actividad.getProyectoMiembro()
-                                .getId()
-
-                                : null
-                )
-
-                .proyectoMiembroRol(
-
-                        actividad.getProyectoMiembro() != null
-
-                                ? actividad.getProyectoMiembro()
-                                .getRolEnProyecto()
-
-                                : null
-                )
-
-                // =================================================
-                // USUARIO RESPONSABLE
-                // =================================================
-
-                .usuarioResponsableId(
-
-                        actividad.getProyectoMiembro() != null
-
-                                ? actividad.getProyectoMiembro()
-                                .getUsuario()
-                                .getId()
-
-                                : null
-                )
-
-                .usuarioResponsableNombre(
-
-                        actividad.getProyectoMiembro() != null
-
-                                ? actividad.getProyectoMiembro()
-                                .getUsuario()
-                                .getNombres()
-
-                                : null
-                )
-
-                .usuarioResponsableEmail(
-
-                        actividad.getProyectoMiembro() != null
-
-                                ? actividad.getProyectoMiembro()
-                                .getUsuario()
-                                .getCorreo()
-
-                                : null
-                )
-
-                // =================================================
-                // INFORMACIÓN
-                // =================================================
-
-                .nombre(
-                        actividad.getNombre()
-                )
-
-                .descripcion(
-                        actividad.getDescripcion()
-                )
-
-                // =================================================
-                // ESTADO
-                // =================================================
-
-                .estado(
-                        actividad.getEstado()
-                )
-
-                // =================================================
-                // PRIORIDAD
-                // =================================================
-
-                .prioridad(
-                        actividad.getPrioridad()
-                )
-
-                // =================================================
-                // AVANCE
-                // =================================================
-
-                .porcentajeAvance(
-                        actividad.getPorcentajeAvance()
-                )
-
-                // =================================================
-                // FECHAS
-                // =================================================
-
-                .fechaInicio(
-                        actividad.getFechaInicio()
-                )
-
-                .fechaFin(
-                        actividad.getFechaFin()
-                )
-
-                // =================================================
-                // EVIDENCIA - URL
-                // =================================================
-
-                .urlEvidencia(
-                        actividad.getUrlEvidencia()
-                )
-
-                // =================================================
-                // EVIDENCIA - IMAGEN BASE64 (NUEVOS CAMPOS)
-                // =================================================
-
-                .imagenBase64(
-                        actividad.getImagenBase64()
-                )
-
-                .tipoImagen(
-                        actividad.getTipoImagen()
-                )
-
-                // =================================================
-                // OBSERVACIONES
-                // =================================================
-
-                .observaciones(
-                        actividad.getObservaciones()
-                )
-
-                // =================================================
-                // AUDITORÍA
-                // =================================================
-
-                .createdAt(
-                        actividad.getCreatedAt()
-                )
-
-                .updatedAt(
-                        actividad.getUpdatedAt()
-                )
-
-                .build();
-    }
+                        // ✅ MAPEO DE LA LISTA DE EVIDENCIAS usando la clase separada
+                        .evidencias(
+                                actividad.getEvidencias() != null
+                                        ? actividad.getEvidencias().stream()
+                                        .map(ActividadEvidenciaMapper::toResponse)
+                                        .toList()
+                                        : null
+                        )
+                        .build();
+        }
 }

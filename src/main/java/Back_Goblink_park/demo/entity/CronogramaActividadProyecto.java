@@ -6,6 +6,8 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "cronograma_actividades_proyecto")
@@ -114,6 +116,9 @@ public class CronogramaActividadProyecto {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+
+    @OneToMany(mappedBy = "actividad", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ActividadEvidencia> evidencias = new ArrayList<>();
     // =====================================================
     // CALLBACKS
     // =====================================================
