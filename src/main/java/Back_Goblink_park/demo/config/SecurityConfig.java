@@ -41,7 +41,8 @@ public class SecurityConfig {
                 "http://localhost:8080",   // Backend (desarrollo local)
                 "http://127.0.0.1:5173",
                 "http://127.0.0.1:3000",
-                "http://127.0.0.1:8080"
+                "http://127.0.0.1:8080",
+                "https://goblinpark.onrender.com"
                 // Agrega aquí tu dominio de producción cuando lo tengas:
                 // "https://tu-app-lovable.app"
         ));
