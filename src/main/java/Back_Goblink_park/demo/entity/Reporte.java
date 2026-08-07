@@ -127,7 +127,7 @@ public class Reporte {
     @OneToMany(
             mappedBy = "reporte",
             cascade = CascadeType.ALL,
-            orphanRemoval = true
+            orphanRemoval = false
     )
     private List<EvidenciaReporte> evidencias;
 
