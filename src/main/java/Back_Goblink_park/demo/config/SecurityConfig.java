@@ -217,8 +217,7 @@ public class SecurityConfig {
                         // =====================================================
                         // CRONOGRAMA DE ACTIVIDADES
                         // =====================================================
-                        .requestMatchers(HttpMethod.GET, "/api/cronograma-actividades/**").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/cronograma-actividades/*/completar").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/cronograma-actividades/*/completar").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/cronograma-actividades/**").hasAuthority("ADMIN")
 
                         // =====================================================

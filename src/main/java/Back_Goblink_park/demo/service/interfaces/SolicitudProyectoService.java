@@ -20,9 +20,9 @@ public interface SolicitudProyectoService {
     // Admin: listar todas las solicitudes pendientes (dashboard)
     List<SolicitudProyectoResponse> listarTodasPendientes();
 
-    // Admin: aceptar o rechazar solicitud
-    SolicitudProyectoResponse responderSolicitud(Long solicitudId, SolicitudResponderRequest request, String correoAdmin);
-
-    // Obtener solicitud por ID
     SolicitudProyectoResponse obtenerSolicitud(Long id);
+    // Nuevos métodos separados:
+    SolicitudProyectoResponse aceptarSolicitud(Long id, SolicitudResponderRequest request, String correoUsuario);
+
+    SolicitudProyectoResponse rechazarSolicitud(Long id, SolicitudResponderRequest request, String correoUsuario);
 }

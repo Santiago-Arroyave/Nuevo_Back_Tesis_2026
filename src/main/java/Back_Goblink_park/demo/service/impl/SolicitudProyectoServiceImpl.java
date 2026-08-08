@@ -14,14 +14,15 @@ import Back_Goblink_park.demo.repository.ProyectoRepository;
 import Back_Goblink_park.demo.repository.SolicitudProyectoRepository;
 import Back_Goblink_park.demo.repository.UsuarioRepository;
 import Back_Goblink_park.demo.service.interfaces.SolicitudProyectoService;
-
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SolicitudProyectoServiceImpl implements SolicitudProyectoService {
@@ -31,153 +32,150 @@ public class SolicitudProyectoServiceImpl implements SolicitudProyectoService {
     private final UsuarioRepository usuarioRepository;
     private final ProyectoMiembroRepository proyectoMiembroRepository;
 
-    // =====================================================
-    // CREAR SOLICITUD (App Móvil)
-    // =====================================================
-
+    // ==========================================
+    // 1. CREACIÓN DE SOLICITUDES
+    // ==========================================
     @Override
     @Transactional
-    public SolicitudProyectoResponse crearSolicitud(
-            SolicitudProyectoRequest request,
-            String correoUsuario) {
+    public SolicitudProyectoResponse crearSolicitud(SolicitudProyectoRequest request, String correoUsuario) {
+        log.info("Iniciando creación de solicitud para el usuario: {} en el proyecto: {}", correoUsuario, request.getProyectoId());
 
-        // Buscar usuario solicitante
         Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el correo: " + correoUsuario));
 
-        // Buscar proyecto
         Proyecto proyecto = proyectoRepository.findById(request.getProyectoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado con ID: " + request.getProyectoId()));
 
-        // Verificar si ya es miembro del proyecto
-        if (solicitudRepository.existeMiembroActivo(usuario.getId(), proyecto.getId())) {
-            throw new IllegalArgumentException("Ya eres miembro de este proyecto");
+        if (proyectoMiembroRepository.existeMiembroActivo(usuario.getId(), proyecto.getId())) {
+            throw new IllegalArgumentException("Ya eres miembro activo de este proyecto");
         }
 
-        // Verificar si ya existe una solicitud pendiente
-        solicitudRepository
-                .findByUsuarioIdAndProyectoIdAndEstado(usuario.getId(), proyecto.getId(), "pendiente")
+        solicitudRepository.findByUsuarioIdAndProyectoIdAndEstado(usuario.getId(), proyecto.getId(), "pendiente")
                 .ifPresent(s -> {
                     throw new IllegalArgumentException("Ya tienes una solicitud pendiente para este proyecto");
                 });
 
-        // Crear solicitud
         SolicitudProyecto solicitud = SolicitudProyecto.builder()
                 .usuario(usuario)
                 .proyecto(proyecto)
                 .estado("pendiente")
-                .mensaje(request.getMensaje())
+                .mensaje(request.getMensaje() != null ? request.getMensaje().trim() : "")
                 .build();
 
         SolicitudProyecto guardada = solicitudRepository.save(solicitud);
+        log.info("Solicitud creada exitosamente con ID: {}", guardada.getId());
 
         return SolicitudProyectoMapper.toResponse(guardada);
     }
 
-    // =====================================================
-    // LISTAR SOLICITUDES PENDIENTES DE UN PROYECTO (Admin)
-    // =====================================================
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<SolicitudProyectoResponse> listarSolicitudesPendientes(Long proyectoId) {
-        return solicitudRepository
-                .findByProyectoIdAndEstadoOrderByFechaSolicitudDesc(proyectoId, "pendiente")
-                .stream()
-                .map(SolicitudProyectoMapper::toResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // LISTAR TODAS LAS SOLICITUDES DE UN PROYECTO
-    // =====================================================
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<SolicitudProyectoResponse> listarSolicitudesPorProyecto(Long proyectoId) {
-        return solicitudRepository
-                .findByProyectoIdOrderByFechaSolicitudDesc(proyectoId)
-                .stream()
-                .map(SolicitudProyectoMapper::toResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // LISTAR TODAS LAS SOLICITUDES PENDIENTES (Dashboard)
-    // =====================================================
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<SolicitudProyectoResponse> listarTodasPendientes() {
-        return solicitudRepository
-                .findByEstadoOrderByFechaSolicitudDesc("pendiente")
-                .stream()
-                .map(SolicitudProyectoMapper::toResponse)
-                .toList();
-    }
-
-    // =====================================================
-    // OBTENER SOLICITUD POR ID
-    // =====================================================
-
+    // ==========================================
+    // 2. CONSULTA DE SOLICITUDES
+    // ==========================================
     @Override
     @Transactional(readOnly = true)
     public SolicitudProyectoResponse obtenerSolicitud(Long id) {
         SolicitudProyecto solicitud = solicitudRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada con el ID: " + id));
         return SolicitudProyectoMapper.toResponse(solicitud);
     }
 
-    // =====================================================
-    // RESPONDER SOLICITUD (Admin acepta o rechaza)
-    // =====================================================
+    @Override
+    @Transactional(readOnly = true)
+    public List<SolicitudProyectoResponse> listarSolicitudesPendientes(Long proyectoId) {
+        log.debug("Listando solicitudes pendientes para el proyecto ID: {}", proyectoId);
+        return solicitudRepository.findByProyectoIdAndEstadoOrderByFechaSolicitudDesc(proyectoId, "pendiente")
+                .stream()
+                .map(SolicitudProyectoMapper::toResponse)
+                .toList();
+    }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SolicitudProyectoResponse> listarSolicitudesPorProyecto(Long proyectoId) {
+        return solicitudRepository.findByProyectoIdOrderByFechaSolicitudDesc(proyectoId)
+                .stream()
+                .map(SolicitudProyectoMapper::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SolicitudProyectoResponse> listarTodasPendientes() {
+        return solicitudRepository.findByEstadoOrderByFechaSolicitudDesc("pendiente")
+                .stream()
+                .map(SolicitudProyectoMapper::toResponse)
+                .toList();
+    }
+
+    // ==========================================
+    // 3. GESTIÓN DE RESPUESTAS (ACEPTAR / RECHAZAR)
+    // ==========================================
+    @Override
     @Transactional
-    public SolicitudProyectoResponse responderSolicitud(
-            Long solicitudId,
-            SolicitudResponderRequest request,
-            String correoAdmin) {
+    public SolicitudProyectoResponse aceptarSolicitud(Long solicitudId, SolicitudResponderRequest request, String correoUsuario) {
+        log.info("Administrador {} aceptando la solicitud ID: {}", correoUsuario, solicitudId);
 
-        // Buscar solicitud
-        SolicitudProyecto solicitud = solicitudRepository.findById(solicitudId)
-                .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada"));
+        SolicitudProyecto solicitud = prepararRespuestaSolicitud(solicitudId, correoUsuario);
+        solicitud.setEstado("aceptada");
+        solicitud.setRespuesta(request.getRespuesta() != null ? request.getRespuesta().trim() : "");
 
-        // Verificar que esté pendiente
-        if (!"pendiente".equalsIgnoreCase(solicitud.getEstado())) {
-            throw new IllegalArgumentException("Esta solicitud ya fue respondida");
-        }
+        boolean yaEsMiembro = proyectoMiembroRepository.existeMiembroActivo(
+                solicitud.getUsuario().getId(),
+                solicitud.getProyecto().getId()
+        );
 
-        // Validar estado
-        String nuevoEstado = request.getEstado();
-        if (!"aceptada".equalsIgnoreCase(nuevoEstado) && !"rechazada".equalsIgnoreCase(nuevoEstado)) {
-            throw new IllegalArgumentException("Estado inválido. Debe ser 'aceptada' o 'rechazada'");
-        }
+        if (!yaEsMiembro) {
+            String rolAsignado = request.getRolEnProyecto() != null ? request.getRolEnProyecto().trim().toUpperCase() : "VOLUNTARIO";
 
-        // Buscar admin que responde
-        Usuario admin = usuarioRepository.findByCorreo(correoAdmin)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario admin no encontrado"));
-
-        // Actualizar solicitud
-        solicitud.setEstado(nuevoEstado.toLowerCase());
-        solicitud.setRespuesta(request.getRespuesta());
-        solicitud.setRespondidoPor(admin);
-        solicitud.setFechaRespuesta(LocalDateTime.now());
-
-        // ✅ SI ES ACEPTADA: crear el ProyectoMiembro automáticamente
-        if ("aceptada".equalsIgnoreCase(nuevoEstado)) {
             ProyectoMiembro miembro = ProyectoMiembro.builder()
                     .proyecto(solicitud.getProyecto())
                     .usuario(solicitud.getUsuario())
-                    .rolEnProyecto("VOLUNTARIO")  // Rol por defecto
+                    .rolEnProyecto(rolAsignado)
                     .estado(true)
                     .build();
 
             proyectoMiembroRepository.save(miembro);
+            log.info("Usuario {} agregado al proyecto {} como {}",
+                    solicitud.getUsuario().getCorreo(), solicitud.getProyecto().getNombre(), rolAsignado);
+        } else {
+            log.warn("El usuario {} ya era miembro del proyecto {}. Se actualizó el estado de la solicitud, pero no se duplicó el registro.",
+                    solicitud.getUsuario().getCorreo(), solicitud.getProyecto().getNombre());
         }
 
         SolicitudProyecto actualizada = solicitudRepository.save(solicitud);
-
         return SolicitudProyectoMapper.toResponse(actualizada);
+    }
+
+    @Override
+    @Transactional
+    public SolicitudProyectoResponse rechazarSolicitud(Long solicitudId, SolicitudResponderRequest request, String correoUsuario) {
+        log.info("Administrador {} rechazando la solicitud ID: {}", correoUsuario, solicitudId);
+
+        SolicitudProyecto solicitud = prepararRespuestaSolicitud(solicitudId, correoUsuario);
+        solicitud.setEstado("rechazada");
+        solicitud.setRespuesta(request.getRespuesta() != null ? request.getRespuesta().trim() : "");
+
+        SolicitudProyecto actualizada = solicitudRepository.save(solicitud);
+        return SolicitudProyectoMapper.toResponse(actualizada);
+    }
+
+    // ==========================================
+    // 4. MÉTODOS PRIVADOS DE APOYO
+    // ==========================================
+    private SolicitudProyecto prepararRespuestaSolicitud(Long solicitudId, String correoAdmin) {
+        SolicitudProyecto solicitud = solicitudRepository.findById(solicitudId)
+                .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada con ID: " + solicitudId));
+
+        if (!"pendiente".equalsIgnoreCase(solicitud.getEstado())) {
+            throw new IllegalArgumentException("Esta solicitud ya fue respondida previamente. Estado actual: " + solicitud.getEstado());
+        }
+
+        Usuario admin = usuarioRepository.findByCorreo(correoAdmin)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario administrador no encontrado con correo: " + correoAdmin));
+
+        solicitud.setRespondidoPor(admin);
+        solicitud.setFechaRespuesta(LocalDateTime.now());
+
+        return solicitud;
     }
 }

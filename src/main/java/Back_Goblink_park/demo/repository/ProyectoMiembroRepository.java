@@ -6,83 +6,53 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface ProyectoMiembroRepository
-        extends JpaRepository<ProyectoMiembro, Long> {
+@Repository
+public interface ProyectoMiembroRepository extends JpaRepository<ProyectoMiembro, Long> {
 
-    // =====================================================
-    // LISTAR MIEMBROS POR PROYECTO
-    // =====================================================
+    // ==========================================
+    // 1. CONSULTAS BÁSICAS
+    // ==========================================
+    List<ProyectoMiembro> findByProyectoId(Long proyectoId);
 
-    List<ProyectoMiembro> findByProyectoId(
-            Long proyectoId
-    );
+    List<ProyectoMiembro> findByProyectoIdAndEstadoTrue(Long proyectoId);
 
-    // =====================================================
-    // LISTAR MIEMBROS ACTIVOS POR PROYECTO
-    // =====================================================
+    List<ProyectoMiembro> findByUsuarioId(Long usuarioId);
 
-    List<ProyectoMiembro> findByProyectoIdAndEstadoTrue(
-            Long proyectoId
-    );
+    Optional<ProyectoMiembro> findByProyectoIdAndUsuarioId(Long proyectoId, Long usuarioId);
 
-    // =====================================================
-    // LISTAR PROYECTOS POR USUARIO
-    // =====================================================
+    // ==========================================
+    // 2. VALIDACIÓN DE EXISTENCIA
+    // ==========================================
+    boolean existsByProyectoIdAndUsuarioId(Long proyectoId, Long usuarioId);
 
-    List<ProyectoMiembro> findByUsuarioId(
-            Long usuarioId
-    );
+    boolean existsByUsuarioIdAndProyectoIdAndEstado(Long usuarioId, Long proyectoId, boolean estado);
 
-    // =====================================================
-    // VALIDAR SI YA EXISTE
-    // =====================================================
-
-    Optional<ProyectoMiembro>
-    findByProyectoIdAndUsuarioId(
-            Long proyectoId,
-            Long usuarioId
-    );
+    // Método semántico para verificar si es miembro activo (reutiliza el método de arriba)
+    default boolean existeMiembroActivo(Long usuarioId, Long proyectoId) {
+        return existsByUsuarioIdAndProyectoIdAndEstado(usuarioId, proyectoId, true);
+    }
 
     Long countByEstadoTrue();
 
-    // =====================================================
-    // VALIDAR EXISTENCIA
-    // =====================================================
+    Long countByProyectoIdAndEstadoTrue(Long proyectoId);
 
-    boolean existsByProyectoIdAndUsuarioId(
-            Long proyectoId,
-            Long usuarioId
-    );
-
-    // =====================================================
-    // PAGINACIÓN
-    // =====================================================
-
+    // ==========================================
+    // 3. PAGINACIÓN
+    // ==========================================
     Page<ProyectoMiembro> findByProyectoId(Long proyectoId, Pageable pageable);
 
     Page<ProyectoMiembro> findByUsuarioId(Long usuarioId, Pageable pageable);
 
-    // =====================================================
-    // CONSULTA PERSONALIZADA: MIEMBROS CON NOMBRE DE USUARIO
-    // =====================================================
-
+    // ==========================================
+    // 4. CONSULTAS PERSONALIZADAS (JOIN FETCH)
+    // ==========================================
     @Query("SELECT pm FROM ProyectoMiembro pm " +
             "JOIN FETCH pm.usuario u " +
             "WHERE pm.proyecto.id = :proyectoId AND pm.estado = true")
-    List<ProyectoMiembro>
-    findActiveMembersWithUserByProyectoId(
-            @Param("proyectoId") Long proyectoId
-    );
-
-    // =====================================================
-    // CONTAR MIEMBROS ACTIVOS POR PROYECTO
-    // =====================================================
-
-    Long countByProyectoIdAndEstadoTrue(
-            Long proyectoId
-    );
+    List<ProyectoMiembro> findActiveMembersWithUserByProyectoId(@Param("proyectoId") Long proyectoId);
 }

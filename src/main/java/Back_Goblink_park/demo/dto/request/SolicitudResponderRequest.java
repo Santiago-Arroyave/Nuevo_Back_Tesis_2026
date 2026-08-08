@@ -11,7 +11,7 @@ public class SolicitudResponderRequest {
 
     // respuesta: aceptada o rechazada
     private String estado;
-
+    private String rolEnProyecto;
     // Motivo de la respuesta
     private String respuesta;
 }
