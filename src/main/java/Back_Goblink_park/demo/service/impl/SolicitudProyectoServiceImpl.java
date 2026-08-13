@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -178,4 +179,16 @@ public class SolicitudProyectoServiceImpl implements SolicitudProyectoService {
 
         return solicitud;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SolicitudProyectoResponse> listarSolicitudesPorUsuario(String correo) {
+        Usuario usuario = usuarioRepository.findByCorreo(correo)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correo));
+        return solicitudRepository.findByUsuarioId(usuario.getId()) // ← getId() no getIdUsuario()
+                .stream()
+                .map(SolicitudProyectoMapper::toResponse) // ← estático, no this::toResponse
+                .collect(Collectors.toList());
+    }
+
 }
