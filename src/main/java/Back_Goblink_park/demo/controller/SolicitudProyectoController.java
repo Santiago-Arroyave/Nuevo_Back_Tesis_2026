@@ -91,4 +91,12 @@ public class SolicitudProyectoController {
         SolicitudProyectoResponse response = solicitudService.rechazarSolicitud(id, request, getCorreoUsuario());
         return ResponseEntity.ok(response);
     }
+
+    // =====================================================
+// APP MÓVIL: LISTAR SOLICITUDES DEL USUARIO AUTENTICADO
+// =====================================================
+    @GetMapping("/mis-solicitudes")
+    public ResponseEntity<List<SolicitudProyectoResponse>> misSolicitudes() {
+        return ResponseEntity.ok(solicitudService.listarSolicitudesPorUsuario(getCorreoUsuario()));
+    }
 }

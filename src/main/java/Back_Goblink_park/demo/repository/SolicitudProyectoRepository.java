@@ -20,4 +20,6 @@ public interface SolicitudProyectoRepository extends JpaRepository<SolicitudProy
 
     List<SolicitudProyecto> findByUsuarioIdOrderByFechaSolicitudDesc(Long usuarioId);
 
+    List<SolicitudProyecto> findByUsuarioId(Long usuarioId);
+
 }
