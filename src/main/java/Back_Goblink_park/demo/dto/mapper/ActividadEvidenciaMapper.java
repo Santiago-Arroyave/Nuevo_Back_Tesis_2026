@@ -12,8 +12,8 @@ public class ActividadEvidenciaMapper {
 
         return ActividadEvidenciaResponse.builder()
                 .id(evidencia.getId())
-                // ✅ Mapeamos el campo de la entidad (imagenBase64) al campo del DTO (archivoBase64)
-                .archivoBase64(evidencia.getImagenBase64())
+                .urlArchivo(evidencia.getUrlArchivo() != null ? evidencia.getUrlArchivo() : evidencia.getImagenBase64())
+                .archivoBase64(null)
                 .tipoArchivo(evidencia.getTipoImagen())
                 .descripcion(evidencia.getDescripcion())
                 .nombreArchivo(evidencia.getNombreArchivo())

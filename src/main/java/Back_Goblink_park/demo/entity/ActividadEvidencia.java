@@ -22,6 +22,10 @@ public class ActividadEvidencia {
     @JoinColumn(name = "id_actividad", nullable = false)
     private CronogramaActividadProyecto actividad;
 
+    @Column(name = "url_archivo", length = 1000)
+    private String urlArchivo;
+
+    @Deprecated
     @Column(columnDefinition = "TEXT", name = "imagen_base64")
     private String imagenBase64;
 

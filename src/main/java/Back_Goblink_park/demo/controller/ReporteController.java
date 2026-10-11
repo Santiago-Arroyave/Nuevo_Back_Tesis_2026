@@ -112,6 +112,17 @@ public class ReporteController {
     }
 
     // =====================================================
+    // CREAR REPORTE - APPLICATION/JSON
+    // =====================================================
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReporteResponse crearReporteJson(
+            @Valid @RequestBody ReporteRequest request
+    ) {
+        return reporteService.crearReporte(request);
+    }
+
+    // =====================================================
     // LISTAR REPORTES CON FILTROS Y PAGINACIÓN
     // =====================================================
     @GetMapping

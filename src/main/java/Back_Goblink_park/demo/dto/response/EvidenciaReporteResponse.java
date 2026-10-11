@@ -28,12 +28,12 @@ public class EvidenciaReporteResponse {
     // =====================================================
     private String tipoArchivo;  // "imagen", "video", "audio", "documento"
 
-    // ✅ CAMPO BASE64 (única fuente de verdad)
-    private String archivoBase64;
-
-    // ⚠️ CAMPO LEGACY para compatibilidad (siempre null)
-    @Deprecated
+    // URL pública directa (Supabase Storage)
     private String urlArchivo;
+
+    // Campo legacy en desuso
+    @Deprecated
+    private String archivoBase64;
 
     private String nombreArchivo;
     private Long tamanoArchivo;

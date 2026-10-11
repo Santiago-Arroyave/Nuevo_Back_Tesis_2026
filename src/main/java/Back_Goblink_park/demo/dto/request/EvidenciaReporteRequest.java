@@ -26,10 +26,11 @@ public class EvidenciaReporteRequest {
     @NotBlank(message = "El tipo de archivo es obligatorio")
     private String tipoArchivo;  // "imagen", "video", "audio", "documento"
 
-    // =====================================================
-    // ✅ ARCHIVO BINARIO (Multipart para upload)
-    // =====================================================
-    private MultipartFile archivo;  // ← Recibe el archivo directamente
+    // ARCHIVO BINARIO (Multipart para upload)
+    private MultipartFile archivo;
+
+    // URL PÚBLICA DIRECTA (si ya fue subido a Supabase Storage)
+    private String urlArchivo;
 
     // =====================================================
     // METADATOS

@@ -48,7 +48,10 @@ public class ReporteRequest {
     private Boolean publico;
     private Boolean estado;
 
-    // ✅ EVIDENCIAS MÚLTIPLES CON BASE64
+    // FOTO PRINCIPAL DIRECTA (URL opcional si ya fue subida)
+    private String fotoPrincipalUrl;
+
+    // EVIDENCIAS
     private List<EvidenciaRequest> evidencias;
 
     // =====================================================
@@ -60,8 +63,11 @@ public class ReporteRequest {
     @AllArgsConstructor
     public static class EvidenciaRequest {
 
-        // ✅ Para multipart: recibe el archivo binario
+        // Para multipart: recibe el archivo binario
         private MultipartFile archivo;
+
+        // URL directa si ya fue subida a Supabase Storage
+        private String urlArchivo;
 
         @NotBlank(message = "El tipo de archivo es obligatorio")
         private String tipoArchivo;

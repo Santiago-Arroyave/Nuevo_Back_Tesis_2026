@@ -264,64 +264,53 @@ public class ProyectoPdfService {
                             document.add(new Paragraph("   " + actividad.getObservaciones(), textoFont));
                         }
 
-                        /// ✅ IMAGEN BASE64 - CON MÁS DEBUG
-                        if (actividad.getImagenBase64() != null && !actividad.getImagenBase64().isEmpty()) {
+                        // IMAGEN DE EVIDENCIA (URL O BASE64)
+                        String fotoUrl = (actividad.getUrlEvidencia() != null && !actividad.getUrlEvidencia().isBlank())
+                                ? actividad.getUrlEvidencia() : null;
+                        String base64Limpio = (actividad.getImagenBase64() != null && !actividad.getImagenBase64().isBlank())
+                                ? actividad.getImagenBase64() : null;
+
+                        if (fotoUrl != null || base64Limpio != null) {
                             try {
                                 document.add(new Paragraph(" "));
                                 document.add(new Paragraph("   Evidencia fotografica:", textoBoldFont));
                                 document.add(new Paragraph(" "));
 
-                                // Limpiar prefijo si existe
-                                String base64Limpio = actividad.getImagenBase64();
-                                if (base64Limpio.contains(",")) {
-                                    base64Limpio = base64Limpio.split(",")[1];
+                                Image img = null;
+                                if (fotoUrl != null && fotoUrl.startsWith("http")) {
+                                    try {
+                                        img = Image.getInstance(java.net.URI.create(fotoUrl).toURL());
+                                    } catch (Exception ex) {
+                                        System.err.println("No se pudo descargar imagen desde URL para PDF: " + ex.getMessage());
+                                    }
                                 }
 
-                                System.out.println("========================================");
-                                System.out.println("📸 PROCESANDO IMAGEN BASE64");
-                                System.out.println("Tamaño Base64: " + base64Limpio.length() + " caracteres");
-                                System.out.println("Primeros 20 chars: " + base64Limpio.substring(0, Math.min(20, base64Limpio.length())));
+                                if (img == null && base64Limpio != null) {
+                                    if (base64Limpio.contains(",")) {
+                                        base64Limpio = base64Limpio.split(",")[1];
+                                    }
+                                    byte[] imageBytes = Base64.getDecoder().decode(base64Limpio);
+                                    img = Image.getInstance(imageBytes);
+                                }
 
-                                // Decodificar Base64
-                                byte[] imageBytes = Base64.getDecoder().decode(base64Limpio);
-                                System.out.println("Bytes decodificados: " + imageBytes.length + " bytes (" + (imageBytes.length / 1024 / 1024) + " MB)");
-
-// Crear imagen
-                                Image img = Image.getInstance(imageBytes);
-                                System.out.println("Dimensiones originales: " + img.getWidth() + "x" + img.getHeight() + " px");
-
-// ✅ ESCALADO FORZADO - Reducir a 200px max
-                                float anchoMax = 200f;
-                                float altoMax = 300f;  // Altura máxima para que no ocupe toda la página
-
-// Escalar proporcionalmente
-                                img.scaleToFit(anchoMax, altoMax);
-                                System.out.println("Imagen escalada FORZADAMENTE a: " + img.getWidth() + "x" + img.getHeight() + " px");
-
-// Centrar imagen
-                                img.setAlignment(Element.ALIGN_CENTER);
-                                img.setSpacingBefore(5);
-                                img.setSpacingAfter(5);
-
-// Agregar borde
-                                img.setBorder(Rectangle.BOX);
-                                img.setBorderWidth(0.5f);
-                                img.setBorderColor(Color.LIGHT_GRAY);
-
-                                System.out.println("Agregando imagen al documento...");
-                                document.add(img);
-                                System.out.println("✅ IMAGEN AGREGADA CORRECTAMENTE");
-
+                                if (img != null) {
+                                    float anchoMax = 200f;
+                                    float altoMax = 300f;
+                                    img.scaleToFit(anchoMax, altoMax);
+                                    img.setAlignment(Element.ALIGN_CENTER);
+                                    img.setSpacingBefore(5);
+                                    img.setSpacingAfter(5);
+                                    img.setBorder(Rectangle.BOX);
+                                    img.setBorderWidth(0.5f);
+                                    img.setBorderColor(Color.LIGHT_GRAY);
+                                    document.add(img);
+                                }
                             } catch (OutOfMemoryError e) {
                                 System.err.println("❌ ERROR: Imagen demasiado grande (OutOfMemoryError)");
-                                System.err.println("   Tamaño Base64: " + actividad.getImagenBase64().length());
-                                e.printStackTrace();
-
                                 document.add(new Paragraph(
                                         "   [La imagen es demasiado grande para mostrarse en el PDF]",
                                         new Font(Font.HELVETICA, 8, Font.ITALIC, Color.RED)
                                 ));
-
                             } catch (Exception e) {
                                 System.err.println("❌ Error al cargar imagen: " + e.getMessage());
                                 System.err.println("   Tipo de error: " + e.getClass().getName());

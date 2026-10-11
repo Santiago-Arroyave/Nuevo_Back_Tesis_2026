@@ -32,9 +32,10 @@ public class ReporteUpdateRequest {
     private Long prioridadId;
     private Boolean publico;
     private Boolean estado;
+    private String fotoPrincipalUrl;
 
     // =====================================================
-    // ✅ EVIDENCIAS: Lista para gestionar (CRUD)
+    // EVIDENCIAS: Lista para gestionar (CRUD)
     // =====================================================
     private List<EvidenciaUpdateRequest> evidencias;
 
@@ -50,10 +51,14 @@ public class ReporteUpdateRequest {
         // ID de la evidencia existente (null = crear nueva)
         private Long id;
 
-        // ✅ Para NUEVAS evidencias: recibe archivo como MultipartFile
+        // Para NUEVAS evidencias: recibe archivo como MultipartFile
         private MultipartFile archivo;
 
-        // ✅ Para ACTUALIZAR evidencias existentes: recibe Base64 (frontend ya tiene la imagen)
+        // URL directa si ya fue subida a Supabase Storage
+        private String urlArchivo;
+
+        // Para compatibilidad legacy
+        @Deprecated
         private String archivoBase64;
 
         @NotBlank(message = "El tipo de archivo es obligatorio")

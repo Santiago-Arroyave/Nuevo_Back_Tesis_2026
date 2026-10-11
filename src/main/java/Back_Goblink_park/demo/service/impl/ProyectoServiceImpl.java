@@ -493,7 +493,8 @@ public class ProyectoServiceImpl implements ProyectoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Prioridad no encontrada"));
         Categoria categoria = request.getCategoriaId() != null ? categoriaRepository.findById(request.getCategoriaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada")) : null;
-        Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
+        String correoSanitizado = (correoUsuario != null) ? correoUsuario.trim().toLowerCase() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         Proyecto proyecto = Proyecto.builder()

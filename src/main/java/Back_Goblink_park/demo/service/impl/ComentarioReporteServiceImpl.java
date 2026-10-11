@@ -63,8 +63,9 @@ public class ComentarioReporteServiceImpl
         // BUSCAR USUARIO AUTENTICADO
         // =============================================
 
+        String correoSanitizado = (correoUsuario != null) ? correoUsuario.trim().toLowerCase() : "";
         Usuario usuario = usuarioRepository
-                .findByCorreo(correoUsuario)
+                .findByCorreoIgnoreCase(correoSanitizado)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Usuario no encontrado"

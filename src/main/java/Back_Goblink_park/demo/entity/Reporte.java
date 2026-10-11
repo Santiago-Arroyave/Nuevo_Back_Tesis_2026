@@ -91,6 +91,7 @@ public class Reporte {
     // EVIDENCIA
     // =====================================================
 
+    @Column(name = "foto_principal_url", length = 1000)
     private String fotoPrincipalUrl;
 
     // =====================================================

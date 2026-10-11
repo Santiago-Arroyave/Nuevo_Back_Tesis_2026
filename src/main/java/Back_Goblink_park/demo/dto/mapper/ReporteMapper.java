@@ -2,9 +2,9 @@ package Back_Goblink_park.demo.dto.mapper;
 
 import Back_Goblink_park.demo.dto.response.*;
 import Back_Goblink_park.demo.entity.*;
-import java.util.Base64;
-import java.util.List;
+
 import java.util.Collections;
+import java.util.List;
 
 public class ReporteMapper {
 
@@ -12,47 +12,36 @@ public class ReporteMapper {
     // ENTITY -> RESPONSE
     // =====================================================
     public static ReporteResponse toResponse(Reporte reporte) {
-
-        // 🔍 DEBUG: Verificar evidencias
-        System.out.println("🔍 [MAPPER] Reporte ID: " + reporte.getId());
-        System.out.println("🔍 [MAPPER] Evidencias size: " +
-                (reporte.getEvidencias() != null ? reporte.getEvidencias().size() : "NULL"));
-
-        if (reporte.getEvidencias() != null) {
-            for (EvidenciaReporte e : reporte.getEvidencias()) {
-                System.out.println("  📎 Evidencia #" + e.getId() +
-                        " | Principal: " + e.getEsPrincipal() +
-                        " | Binario length: " + (e.getArchivoBinario() != null ? e.getArchivoBinario().length : 0));  // ✅ Sin paréntesis
-            }
+        if (reporte == null) {
+            return null;
         }
 
-        // ✅ CALCULAR fotoPrincipalBase64 desde evidencias (única fuente de verdad)
-        String fotoPrincipalBase64 = calcularFotoPrincipalBase64(reporte.getEvidencias());
+        String fotoPrincipalUrl = calcularFotoPrincipalUrl(reporte);
 
         return ReporteResponse.builder()
                 // ID
                 .id(reporte.getId())
 
                 // USUARIO
-                .usuarioId(reporte.getUsuario().getId())
-                .usuarioNombre(reporte.getUsuario().getNombres())
-                .usuarioCorreo(reporte.getUsuario().getCorreo())
-                .usuarioUsername(reporte.getUsuario().getUsername())
+                .usuarioId(reporte.getUsuario() != null ? reporte.getUsuario().getId() : null)
+                .usuarioNombre(reporte.getUsuario() != null ? reporte.getUsuario().getNombres() : null)
+                .usuarioCorreo(reporte.getUsuario() != null ? reporte.getUsuario().getCorreo() : null)
+                .usuarioUsername(reporte.getUsuario() != null ? reporte.getUsuario().getUsername() : null)
 
                 // CATEGORÍA
-                .categoriaId(reporte.getCategoria().getId())
-                .categoriaNombre(reporte.getCategoria().getNombre())
-                .colorCategoria(reporte.getCategoria().getColor())
+                .categoriaId(reporte.getCategoria() != null ? reporte.getCategoria().getId() : null)
+                .categoriaNombre(reporte.getCategoria() != null ? reporte.getCategoria().getNombre() : null)
+                .colorCategoria(reporte.getCategoria() != null ? reporte.getCategoria().getColor() : null)
 
                 // PRIORIDAD
-                .prioridadId(reporte.getPrioridad().getId())
-                .prioridadNombre(reporte.getPrioridad().getNombre())
-                .colorPrioridad(reporte.getPrioridad().getColor())
+                .prioridadId(reporte.getPrioridad() != null ? reporte.getPrioridad().getId() : null)
+                .prioridadNombre(reporte.getPrioridad() != null ? reporte.getPrioridad().getNombre() : null)
+                .colorPrioridad(reporte.getPrioridad() != null ? reporte.getPrioridad().getColor() : null)
 
                 // ESTADO REPORTE
-                .estadoReporteId(reporte.getEstadoReporte().getId())
-                .estadoReporteNombre(reporte.getEstadoReporte().getNombre())
-                .colorEstadoReporte(reporte.getEstadoReporte().getColor())
+                .estadoReporteId(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getId() : null)
+                .estadoReporteNombre(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getNombre() : null)
+                .colorEstadoReporte(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getColor() : null)
 
                 // INFORMACIÓN
                 .titulo(reporte.getTitulo())
@@ -66,8 +55,8 @@ public class ReporteMapper {
                 .longitud(reporte.getLongitud())
                 .direccionReferencia(reporte.getDireccionReferencia())
 
-                // ✅ EVIDENCIA: Usar Base64 calculado desde evidencias (fallback a campo legacy si existe)
-                .fotoPrincipalUrl(fotoPrincipalBase64 != null ? fotoPrincipalBase64 : reporte.getFotoPrincipalUrl())
+                // EVIDENCIA: URL pública de Supabase Storage
+                .fotoPrincipalUrl(fotoPrincipalUrl)
 
                 // VALIDACIÓN
                 .validadoPorId(reporte.getValidadoPor() != null ? reporte.getValidadoPor().getId() : null)
@@ -90,33 +79,31 @@ public class ReporteMapper {
                 .build();
     }
 
-    // ✅ MÉTODO AUXILIAR: Calcular foto principal Base64 desde evidencias
-    private static String calcularFotoPrincipalBase64(List<EvidenciaReporte> evidencias) {
-        if (evidencias == null || evidencias.isEmpty()) {
+    // =====================================================
+    // MÉTODO AUXILIAR: Calcular foto principal URL
+    // =====================================================
+    private static String calcularFotoPrincipalUrl(Reporte reporte) {
+        if (reporte == null) {
             return null;
         }
 
-        // Buscar evidencia marcada como principal y convertir a Base64
-        return evidencias.stream()
-                .filter(EvidenciaReporte::getEsPrincipal)
-                .findFirst()
-                .map(evidencia -> {
-                    // ✅ Convertir byte[] → Base64
-                    byte[] binario = evidencia.getArchivoBinario();
-                    return binario != null ? Base64.getEncoder().encodeToString(binario) : null;
-                })
-                .orElse(
-                        // Fallback: si no hay principal marcada, usar la primera imagen
-                        evidencias.stream()
-                                .filter(e -> "imagen".equalsIgnoreCase(e.getTipoArchivo()))
-                                .findFirst()
-                                .map(evidencia -> {
-                                    // ✅ Convertir byte[] → Base64
-                                    byte[] binario = evidencia.getArchivoBinario();
-                                    return binario != null ? Base64.getEncoder().encodeToString(binario) : null;
-                                })
-                                .orElse(null)
-                );
+        if (reporte.getFotoPrincipalUrl() != null && !reporte.getFotoPrincipalUrl().isBlank()) {
+            return reporte.getFotoPrincipalUrl();
+        }
+
+        if (reporte.getEvidencias() != null && !reporte.getEvidencias().isEmpty()) {
+            return reporte.getEvidencias().stream()
+                    .filter(e -> Boolean.TRUE.equals(e.getEsPrincipal()) && e.getUrlArchivo() != null && !e.getUrlArchivo().isBlank())
+                    .findFirst()
+                    .map(EvidenciaReporte::getUrlArchivo)
+                    .orElseGet(() -> reporte.getEvidencias().stream()
+                            .filter(e -> e.getUrlArchivo() != null && !e.getUrlArchivo().isBlank())
+                            .findFirst()
+                            .map(EvidenciaReporte::getUrlArchivo)
+                            .orElse(null));
+        }
+
+        return null;
     }
 
     // =====================================================
@@ -126,26 +113,19 @@ public class ReporteMapper {
         if (evidencias == null) return Collections.emptyList();
 
         return evidencias.stream()
-                .map(evidencia -> {
-                    // ✅ Convertir byte[] → Base64 para el frontend
-                    String archivoBase64 = null;
-                    if (evidencia.getArchivoBinario() != null) {
-                        archivoBase64 = Base64.getEncoder().encodeToString(evidencia.getArchivoBinario());
-                    }
-
-                    return EvidenciaReporteResponse.builder()
-                            .id(evidencia.getId())
-                            .tipoArchivo(evidencia.getTipoArchivo())
-                            .archivoBase64(archivoBase64)  // ✅ Base64 para el frontend
-                            .urlArchivo(null)  // ⚠️ DEJAR EN NULL (ya no usamos URLs)
-                            .nombreArchivo(evidencia.getNombreArchivo())
-                            .tamanoArchivo(evidencia.getTamanoArchivo())
-                            .mimeType(evidencia.getMimeType())
-                            .descripcion(evidencia.getDescripcion())
-                            .esPrincipal(evidencia.getEsPrincipal())
-                            .fechaCarga(evidencia.getFechaCarga())
-                            .build();
-                })
+                .map(evidencia -> EvidenciaReporteResponse.builder()
+                        .id(evidencia.getId())
+                        .reporteId(evidencia.getReporte() != null ? evidencia.getReporte().getId() : null)
+                        .tipoArchivo(evidencia.getTipoArchivo())
+                        .urlArchivo(evidencia.getUrlArchivo())
+                        .archivoBase64(null)
+                        .nombreArchivo(evidencia.getNombreArchivo())
+                        .tamanoArchivo(evidencia.getTamanoArchivo())
+                        .mimeType(evidencia.getMimeType())
+                        .descripcion(evidencia.getDescripcion())
+                        .esPrincipal(evidencia.getEsPrincipal())
+                        .fechaCarga(evidencia.getFechaCarga())
+                        .build())
                 .toList();
     }
 
@@ -162,8 +142,8 @@ public class ReporteMapper {
                         .tipoComentario(comentario.getTipoComentario())
                         .editado(comentario.getEditado())
                         .fechaComentario(comentario.getFechaComentario())
-                        .usuarioId(comentario.getUsuario().getId())
-                        .usuarioNombre(comentario.getUsuario().getNombres())
+                        .usuarioId(comentario.getUsuario() != null ? comentario.getUsuario().getId() : null)
+                        .usuarioNombre(comentario.getUsuario() != null ? comentario.getUsuario().getNombres() : null)
                         .build())
                 .toList();
     }
@@ -172,9 +152,16 @@ public class ReporteMapper {
     // REPORTE -> MAPA RESPONSE (Para el mapa)
     // =====================================================
     public static ReporteMapaResponse toMapaResponse(Reporte reporte) {
+        if (reporte == null) {
+            return null;
+        }
 
-        // ✅ CALCULAR fotoPrincipalBase64 desde evidencias
-        String fotoPrincipalBase64 = calcularFotoPrincipalBase64(reporte.getEvidencias());
+        String fotoPrincipalUrl = calcularFotoPrincipalUrl(reporte);
+        String usuarioFotoPerfil = (reporte.getUsuario() != null) ? reporte.getUsuario().getFotoPerfil() : null;
+
+        boolean tieneImagen = (fotoPrincipalUrl != null && !fotoPrincipalUrl.isBlank()) ||
+                (reporte.getEvidencias() != null && reporte.getEvidencias().stream()
+                        .anyMatch(e -> e.getUrlArchivo() != null && !e.getUrlArchivo().isBlank()));
 
         return ReporteMapaResponse.builder()
                 .id(reporte.getId())
@@ -185,29 +172,24 @@ public class ReporteMapper {
                 .longitud(reporte.getLongitud())
                 .direccionReferencia(reporte.getDireccionReferencia())
 
-                .categoriaId(reporte.getCategoria().getId())
-                .categoriaNombre(reporte.getCategoria().getNombre())
-                .colorCategoria(reporte.getCategoria().getColor())
+                .categoriaId(reporte.getCategoria() != null ? reporte.getCategoria().getId() : null)
+                .categoriaNombre(reporte.getCategoria() != null ? reporte.getCategoria().getNombre() : null)
+                .colorCategoria(reporte.getCategoria() != null ? reporte.getCategoria().getColor() : null)
 
-                .prioridadId(reporte.getPrioridad().getId())
-                .prioridadNombre(reporte.getPrioridad().getNombre())
-                .colorPrioridad(reporte.getPrioridad().getColor())
+                .prioridadId(reporte.getPrioridad() != null ? reporte.getPrioridad().getId() : null)
+                .prioridadNombre(reporte.getPrioridad() != null ? reporte.getPrioridad().getNombre() : null)
+                .colorPrioridad(reporte.getPrioridad() != null ? reporte.getPrioridad().getColor() : null)
 
-                .estadoReporteId(reporte.getEstadoReporte().getId())
-                .estadoReporteNombre(reporte.getEstadoReporte().getNombre())
-                .colorEstadoReporte(reporte.getEstadoReporte().getColor())
+                .estadoReporteId(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getId() : null)
+                .estadoReporteNombre(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getNombre() : null)
+                .colorEstadoReporte(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getColor() : null)
 
-                // ✅ NO enviar Base64, solo un booleano
-                .tieneImagen(reporte.getEvidencias() != null &&
-                        !reporte.getEvidencias().isEmpty() &&
-                        reporte.getEvidencias().stream().anyMatch(e -> "imagen".equalsIgnoreCase(e.getTipoArchivo())))
+                .tieneImagen(tieneImagen)
+                .fotoPrincipalUrl(fotoPrincipalUrl)
 
-                // ✅ O enviar URL de placeholder/thumbnail si tienes
-                .fotoPrincipalUrl(null)  // ← NULL o "/assets/placeholder.png"
-
-                .usuarioId(reporte.getUsuario().getId())
-                .usuarioNombre(reporte.getUsuario().getNombres())
-                .usuarioFotoPerfil(null)
+                .usuarioId(reporte.getUsuario() != null ? reporte.getUsuario().getId() : null)
+                .usuarioNombre(reporte.getUsuario() != null ? reporte.getUsuario().getNombres() : null)
+                .usuarioFotoPerfil(usuarioFotoPerfil)
                 .build();
     }
 }

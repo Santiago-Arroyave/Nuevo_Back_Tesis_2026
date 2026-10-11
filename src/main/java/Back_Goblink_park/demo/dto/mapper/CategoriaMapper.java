@@ -6,6 +6,10 @@ import Back_Goblink_park.demo.entity.Categoria;
 public class CategoriaMapper {
 
     public static CategoriaResponse toResponse(Categoria categoria) {
+        if (categoria == null) {
+            return null;
+        }
+
         return CategoriaResponse.builder()
                 .id(categoria.getId())
                 .nombre(categoria.getNombre())
@@ -13,7 +17,7 @@ public class CategoriaMapper {
                 .color(categoria.getColor())
                 .estado(categoria.getEstado())
                 .imagenUrl(categoria.getImagenUrl())
-                .imagenBase64(categoria.getImagenBase64())
+                .imagenBase64(null)
                 .build();
     }
 }

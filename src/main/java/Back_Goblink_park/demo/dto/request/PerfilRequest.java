@@ -24,6 +24,11 @@ public class PerfilRequest {
     @Size(max = 50, message = "El username no puede exceder los 50 caracteres")
     private String username;
 
-    // Campo para recibir la foto de perfil (opcional)
+    // Campos para recibir fotos como archivo (MultipartFile)
     private MultipartFile fotoPerfil;
+    private MultipartFile fotoPortada;
+
+    // Campos para recibir URLs directas si ya fueron subidas
+    private String fotoPerfilUrl;
+    private String fotoPortadaUrl;
 }

@@ -10,5 +10,6 @@ public class CategoriaResponse {
     private String color;
     private Boolean estado;
     private String imagenUrl;
-    private String imagenBase64;  // ← AGREGAR ESTE CAMPO
+    @Deprecated
+    private String imagenBase64;
 }

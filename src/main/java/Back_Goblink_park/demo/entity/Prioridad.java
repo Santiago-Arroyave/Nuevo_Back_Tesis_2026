@@ -29,12 +29,13 @@ public class Prioridad {
     @Column(name = "descripcion", length = 100)
     private String descripcion;
 
-    @Column(name = "imagen_url", length = 500)
+    @Column(name = "imagen_url", length = 1000)
     private String imagenUrl;
 
     @Column(length = 7)
     private String color;
 
+    @Deprecated
     @Column(name = "imagen_base64", columnDefinition = "TEXT")
     private String imagenBase64;
 

@@ -10,6 +10,7 @@ import Back_Goblink_park.demo.exception.BusinessException;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.RolRepository;
 import Back_Goblink_park.demo.repository.UsuarioRepository;
+import Back_Goblink_park.demo.service.interfaces.FileStorageService;
 import Back_Goblink_park.demo.service.interfaces.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,6 +33,7 @@ public class UserServiceImpl implements UserService {
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FileStorageService fileStorageService;
 
     // =====================================================
     // CREAR USUARIO
@@ -39,8 +41,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse crearUsuario(UserRequest request) {
-        // Validar correo único
-        if (usuarioRepository.existsByCorreo(request.getCorreo())) {
+        // Normalizar correo en minúsculas y sin espacios
+        String correoSanitizado = request.getCorreo().trim().toLowerCase();
+        if (usuarioRepository.existsByCorreoIgnoreCase(correoSanitizado)) {
             throw new BusinessException("El correo ya está registrado");
         }
 
@@ -64,7 +67,7 @@ public class UserServiceImpl implements UserService {
                 .rol(rol)
                 .nombres(request.getNombres())
                 .apellidos(request.getApellidos())
-                .correo(request.getCorreo())
+                .correo(correoSanitizado)
                 .username(request.getUsername())
                 .passwordHash(hash)
                 .telefono(request.getTelefono())
@@ -122,7 +125,13 @@ public class UserServiceImpl implements UserService {
         if (request.getApellidos() != null) {
             usuario.setApellidos(request.getApellidos());
         }
-        usuario.setCorreo(request.getCorreo());
+        if (request.getCorreo() != null && !request.getCorreo().isBlank()) {
+            String correoSanitizado = request.getCorreo().trim().toLowerCase();
+            if (!correoSanitizado.equalsIgnoreCase(usuario.getCorreo()) && usuarioRepository.existsByCorreoIgnoreCase(correoSanitizado)) {
+                throw new BusinessException("El correo ya está registrado por otro usuario");
+            }
+            usuario.setCorreo(correoSanitizado);
+        }
         usuario.setUsername(request.getUsername());
         usuario.setTelefono(request.getTelefono());
 
@@ -216,8 +225,9 @@ public class UserServiceImpl implements UserService {
             String fotoPerfilBase64,
             String fotoPortadaBase64
     ) {
-        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoUsuario.trim())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
+        String correoSanitizado = correoUsuario.trim().toLowerCase();
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoSanitizado));
 
         if (nombres != null && !nombres.isBlank()) usuario.setNombres(nombres.trim());
         if (apellidos != null) usuario.setApellidos(apellidos.trim());
@@ -231,28 +241,18 @@ public class UserServiceImpl implements UserService {
 
         // Procesar foto de perfil si se envía archivo multipart
         if (fotoPerfil != null && !fotoPerfil.isEmpty()) {
-            try {
-                byte[] bytes = fotoPerfil.getBytes();
-                String base64Foto = Base64.getEncoder().encodeToString(bytes);
-                usuario.setFotoPerfil(base64Foto.replaceAll("\\s", ""));
-            } catch (IOException e) {
-                throw new RuntimeException("Error al convertir la foto de perfil a Base64: " + e.getMessage(), e);
-            }
-        } else if (fotoPerfilBase64 != null) {
-            usuario.setFotoPerfil(fotoPerfilBase64.replaceAll("\\s", ""));
+            String url = fileStorageService.uploadFile(fotoPerfil, "avatars");
+            usuario.setFotoPerfil(url);
+        } else if (fotoPerfilBase64 != null && !fotoPerfilBase64.isBlank()) {
+            usuario.setFotoPerfil(fotoPerfilBase64.trim());
         }
 
         // Procesar foto de portada si se envía archivo multipart
         if (fotoPortada != null && !fotoPortada.isEmpty()) {
-            try {
-                byte[] bytes = fotoPortada.getBytes();
-                String base64Portada = Base64.getEncoder().encodeToString(bytes);
-                usuario.setFotoPortada(base64Portada.replaceAll("\\s", ""));
-            } catch (IOException e) {
-                throw new RuntimeException("Error al convertir la foto de portada a Base64: " + e.getMessage(), e);
-            }
-        } else if (fotoPortadaBase64 != null) {
-            usuario.setFotoPortada(fotoPortadaBase64.replaceAll("\\s", ""));
+            String url = fileStorageService.uploadFile(fotoPortada, "portadas");
+            usuario.setFotoPortada(url);
+        } else if (fotoPortadaBase64 != null && !fotoPortadaBase64.isBlank()) {
+            usuario.setFotoPortada(fotoPortadaBase64.trim());
         }
 
         Usuario usuarioGuardado = usuarioRepository.save(usuario);
@@ -265,8 +265,9 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public UserResponse obtenerPerfilPorCorreo(String correoUsuario) {
-        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoUsuario.trim())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
+        String correoSanitizado = correoUsuario.trim().toLowerCase();
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoSanitizado));
 
         return UserMapper.toResponse(usuario);
     }
@@ -363,9 +364,8 @@ public class UserServiceImpl implements UserService {
     // VALIDAR USUARIO ACTIVO (para login)
     // =====================================================
     public void validarUsuarioActivo(String correo) {
-        String correoLimpio = (correo != null) ? correo.trim() : "";
+        String correoLimpio = (correo != null) ? correo.trim().toLowerCase() : "";
         Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoLimpio)
-                .or(() -> usuarioRepository.findByCorreo(correoLimpio))
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correo));
 
         if (!usuario.getEstado()) {

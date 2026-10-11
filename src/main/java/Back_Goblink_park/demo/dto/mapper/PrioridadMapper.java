@@ -17,8 +17,8 @@ public class PrioridadMapper {
                 .descripcion(prioridad.getDescripcion())
                 .estado(prioridad.getEstado())
                 .imagenUrl(prioridad.getImagenUrl())
-                .color(prioridad.getColor())  // ← ¿ESTÁ ESTA LÍNEA?
-                .imagenBase64(prioridad.getImagenBase64()) // 🔑 PUNTO CLAVE: Mapear el Base64
+                .color(prioridad.getColor())
+                .imagenBase64(null)
                 .build();
     }
 }

@@ -13,7 +13,7 @@ public interface EvidenciaReporteRepository
         extends JpaRepository<EvidenciaReporte, Long> {
 
     @Query("SELECT new Back_Goblink_park.demo.dto.response.EvidenciaReporteResponse(" +
-            "e.id, r.id, e.tipoArchivo, null, null, e.nombreArchivo, e.tamanoArchivo, " +
+            "e.id, r.id, e.tipoArchivo, e.urlArchivo, null, e.nombreArchivo, e.tamanoArchivo, " +
             "e.mimeType, e.descripcion, e.esPrincipal, e.fechaCarga) " +
             "FROM EvidenciaReporte e JOIN e.reporte r WHERE r.id = :reporteId")
     List<EvidenciaReporteResponse> findResponsesByReporteId(@Param("reporteId") Long reporteId);

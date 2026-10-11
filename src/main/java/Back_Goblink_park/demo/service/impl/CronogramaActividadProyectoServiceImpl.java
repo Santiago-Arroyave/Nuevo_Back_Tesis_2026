@@ -39,6 +39,7 @@ public class CronogramaActividadProyectoServiceImpl
     private final ProyectoRepository proyectoRepository;
     private final ProyectoMiembroRepository proyectoMiembroRepository;
     private final ActividadEvidenciaRepository actividadEvidenciaRepository;
+    private final Back_Goblink_park.demo.service.interfaces.FileStorageService fileStorageService;
 
     // =====================================================
     // MÉTODO AUXILIAR: BUSCAR MIEMBRO POR USUARIO O ID DIRECTO
@@ -228,9 +229,20 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
+    @Transactional
     public void eliminarActividad(Long id) {
         CronogramaActividadProyecto actividad = actividadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
+        if (actividad.getEvidencias() != null) {
+            actividad.getEvidencias().forEach(e -> {
+                if (e.getUrlArchivo() != null && !e.getUrlArchivo().isBlank()) {
+                    fileStorageService.deleteFile(e.getUrlArchivo());
+                }
+            });
+        }
+        if (actividad.getUrlEvidencia() != null && !actividad.getUrlEvidencia().isBlank()) {
+            fileStorageService.deleteFile(actividad.getUrlEvidencia());
+        }
         actividadRepository.delete(actividad);
     }
 
@@ -295,23 +307,23 @@ public class CronogramaActividadProyectoServiceImpl
         if (files != null && !files.isEmpty()) {
             for (MultipartFile file : files) {
                 if (file != null && !file.isEmpty()) {
-                    try {
-                        byte[] bytes = file.getBytes();
-                        String base64String = Base64.getEncoder().encodeToString(bytes);
+                    String url = fileStorageService.uploadFile(file, "actividades");
 
-                        ActividadEvidencia evidencia = ActividadEvidencia.builder()
-                                .actividad(actividad)
-                                .imagenBase64(base64String)
-                                .tipoImagen(file.getContentType())
-                                .descripcion(descripcionEvidencia)
-                                .build();
+                    ActividadEvidencia evidencia = ActividadEvidencia.builder()
+                            .actividad(actividad)
+                            .urlArchivo(url)
+                            .tipoImagen(file.getContentType())
+                            .nombreArchivo(file.getOriginalFilename())
+                            .tamanoArchivo(file.getSize())
+                            .mimeType(file.getContentType())
+                            .descripcion(descripcionEvidencia)
+                            .build();
 
-                        actividadEvidenciaRepository.save(evidencia);
-                        actividad.getEvidencias().add(evidencia);
+                    actividadEvidenciaRepository.save(evidencia);
+                    actividad.getEvidencias().add(evidencia);
 
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw new RuntimeException("Error al procesar el archivo: " + file.getOriginalFilename());
+                    if (actividad.getUrlEvidencia() == null || actividad.getUrlEvidencia().isBlank()) {
+                        actividad.setUrlEvidencia(url);
                     }
                 }
             }

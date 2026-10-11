@@ -31,11 +31,12 @@ public class CustomUserDetailsService
         // BUSCAR USUARIO POR CORREO
         // =========================================
 
+        String correoSanitizado = (correo != null) ? correo.trim().toLowerCase() : "";
         Usuario usuario = usuarioRepository
-                .findByCorreo(correo)
+                .findByCorreoIgnoreCase(correoSanitizado)
                 .orElseThrow(() ->
                         new UsernameNotFoundException(
-                                "Usuario no encontrado"
+                                "Usuario no encontrado: " + correo
                         )
                 );
 

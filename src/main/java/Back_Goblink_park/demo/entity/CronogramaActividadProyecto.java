@@ -76,16 +76,17 @@ public class CronogramaActividadProyecto {
     private LocalDate fechaFin;
 
     // =====================================================
-    // EVIDENCIA - URL (OPCIONAL - si se sube a servidor)
+    // EVIDENCIA - URL
     // =====================================================
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "url_evidencia", length = 1000)
     private String urlEvidencia;
 
     // =====================================================
-    // EVIDENCIA - IMAGEN BASE64 (NUEVO CAMPO)
+    // EVIDENCIA - IMAGEN BASE64 (DEPRECATED)
     // =====================================================
 
+    @Deprecated
     @Column(columnDefinition = "TEXT", name = "imagen_base64")
     private String imagenBase64;
 

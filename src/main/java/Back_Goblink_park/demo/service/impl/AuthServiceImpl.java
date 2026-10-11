@@ -12,6 +12,7 @@ import Back_Goblink_park.demo.entity.Rol;
 import Back_Goblink_park.demo.entity.Usuario;
 import Back_Goblink_park.demo.exception.BusinessException;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
+import Back_Goblink_park.demo.exception.UnauthorizedException;
 import Back_Goblink_park.demo.repository.RolRepository;
 import Back_Goblink_park.demo.repository.UsuarioRepository;
 import Back_Goblink_park.demo.security.JwtService;
@@ -40,8 +41,11 @@ public class AuthServiceImpl implements AuthService {
     // =====================================================
     @Override
     public AuthResponse register(RegisterRequest request) {
-        // Validar correo único
-        if (usuarioRepository.existsByCorreo(request.getCorreo())) {
+        // Normalizar correo en minúsculas y sin espacios
+        String correoSanitizado = request.getCorreo().trim().toLowerCase();
+
+        // Validar correo único (insensible a mayúsculas/minúsculas)
+        if (usuarioRepository.existsByCorreoIgnoreCase(correoSanitizado)) {
             throw new BusinessException("El correo ya está registrado");
         }
 
@@ -49,11 +53,11 @@ public class AuthServiceImpl implements AuthService {
         Rol rolUser = rolRepository.findByNombre("USER")
                 .orElseThrow(() -> new BusinessException("Rol USER no encontrado"));
 
-        // Crear usuario
+        // Crear usuario persistiendo siempre el correo en minúsculas
         Usuario usuario = Usuario.builder()
                 .rol(rolUser)
-                .nombres(request.getNombres())
-                .correo(request.getCorreo())
+                .nombres(request.getNombres().trim())
+                .correo(correoSanitizado)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .estado(true) // Nuevo usuario siempre activo
                 .build();
@@ -74,11 +78,10 @@ public class AuthServiceImpl implements AuthService {
     // =====================================================
     @Override
     public AuthResponse login(LoginRequest request) {
-        // 1. Buscar usuario por correo
-        String correoLimpio = request.getCorreo() != null ? request.getCorreo().trim() : "";
-        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoLimpio)
-                .or(() -> usuarioRepository.findByCorreo(correoLimpio))
-                .orElseThrow(() -> new BusinessException("Credenciales inválidas"));
+        // 1. Normalizar correo antes de buscar
+        String correoSanitizado = request.getCorreo().trim().toLowerCase();
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
+                .orElseThrow(() -> new UnauthorizedException("Credenciales inválidas"));
 
         // 2. 🔒 VALIDAR QUE EL USUARIO ESTÉ ACTIVO
         if (!usuario.getEstado()) {
@@ -94,7 +97,7 @@ public class AuthServiceImpl implements AuthService {
         );
 
         if (!passwordCorrecta) {
-            throw new BusinessException("Credenciales inválidas");
+            throw new UnauthorizedException("Credenciales inválidas");
         }
 
         // 4. Generar token JWT
@@ -132,9 +135,10 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException("Las nuevas contraseñas no coinciden");
         }
 
-        // Buscar usuario por correo
-        Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        // Buscar usuario por correo sanitizado
+        String correoSanitizado = correoUsuario != null ? correoUsuario.trim().toLowerCase() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
 
         // Validar contraseña actual
         if (!passwordEncoder.matches(request.getCurrentPassword(), usuario.getPasswordHash())) {
@@ -167,9 +171,8 @@ public class AuthServiceImpl implements AuthService {
     // =====================================================
     @Override
     public UserResponse getMe(String correoUsuario) {
-        String correoLimpio = correoUsuario != null ? correoUsuario.trim() : "";
-        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoLimpio)
-                .or(() -> usuarioRepository.findByCorreo(correoLimpio))
+        String correoSanitizado = correoUsuario != null ? correoUsuario.trim().toLowerCase() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Usuario no encontrado con correo: " + correoUsuario));
 
@@ -185,13 +188,14 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 2. Buscar usuario por Correo O por Username (lo que venga en 'identifier')
-        Usuario usuario = usuarioRepository.findByCorreo(request.getIdentifier())
+        String identifier = request.getIdentifier() != null ? request.getIdentifier().trim() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(identifier.toLowerCase())
                 .orElseGet(() -> {
                     // Si no lo encontró por correo, intenta por username
-                    System.out.println(" [Backend] No encontrado por correo, buscando por username: " + request.getIdentifier());
-                    return usuarioRepository.findByUsername(request.getIdentifier())
+                    System.out.println(" [Backend] No encontrado por correo, buscando por username: " + identifier);
+                    return usuarioRepository.findByUsername(identifier)
                             .orElseThrow(() -> new ResourceNotFoundException(
-                                    "No se encontró ningún usuario con: " + request.getIdentifier()));
+                                    "No se encontró ningún usuario con: " + identifier));
                 });
 
         // 3. Validar que la nueva contraseña sea diferente

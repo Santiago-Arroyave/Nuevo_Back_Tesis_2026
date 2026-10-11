@@ -31,9 +31,10 @@ public class Categoria {
     @Column(length = 7)
     private String color;
 
-    @Column(name = "imagen_url")
+    @Column(name = "imagen_url", length = 1000)
     private String imagenUrl;
 
+    @Deprecated
     @Column(name = "imagen_base64", columnDefinition = "TEXT")
     private String imagenBase64;
 

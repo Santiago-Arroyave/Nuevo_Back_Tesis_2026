@@ -41,7 +41,8 @@ public class SolicitudProyectoServiceImpl implements SolicitudProyectoService {
     public SolicitudProyectoResponse crearSolicitud(SolicitudProyectoRequest request, String correoUsuario) {
         log.info("Iniciando creación de solicitud para el usuario: {} en el proyecto: {}", correoUsuario, request.getProyectoId());
 
-        Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
+        String correoSanitizado = (correoUsuario != null) ? correoUsuario.trim().toLowerCase() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el correo: " + correoUsuario));
 
         Proyecto proyecto = proyectoRepository.findById(request.getProyectoId())
@@ -171,7 +172,8 @@ public class SolicitudProyectoServiceImpl implements SolicitudProyectoService {
             throw new IllegalArgumentException("Esta solicitud ya fue respondida previamente. Estado actual: " + solicitud.getEstado());
         }
 
-        Usuario admin = usuarioRepository.findByCorreo(correoAdmin)
+        String correoAdminSanitizado = (correoAdmin != null) ? correoAdmin.trim().toLowerCase() : "";
+        Usuario admin = usuarioRepository.findByCorreoIgnoreCase(correoAdminSanitizado)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario administrador no encontrado con correo: " + correoAdmin));
 
         solicitud.setRespondidoPor(admin);
@@ -183,7 +185,8 @@ public class SolicitudProyectoServiceImpl implements SolicitudProyectoService {
     @Override
     @Transactional(readOnly = true)
     public List<SolicitudProyectoResponse> listarSolicitudesPorUsuario(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
+        String correoSanitizado = (correo != null) ? correo.trim().toLowerCase() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correo));
         return solicitudRepository.findByUsuarioId(usuario.getId()) // ← getId() no getIdUsuario()
                 .stream()

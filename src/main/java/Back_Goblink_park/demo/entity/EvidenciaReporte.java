@@ -29,10 +29,17 @@ public class EvidenciaReporte {
     private Reporte reporte;
 
     // =====================================================
-    // ARCHIVO BINARIO (BYTEA - PostgreSQL)
+    // URL PÚBLICA DEL ARCHIVO (Supabase Storage)
     // =====================================================
+    @Column(name = "url_archivo", length = 1000)
+    private String urlArchivo;
+
+    // =====================================================
+    // ARCHIVO BINARIO (BYTEA - DEPRECATED)
+    // =====================================================
+    @Deprecated
     @Column(name = "archivo_binario", columnDefinition = "BYTEA")
-    private byte[] archivoBinario;  // ✅ Array de bytes para almacenamiento eficiente
+    private byte[] archivoBinario;
 
     // =====================================================
     // METADATOS DEL ARCHIVO

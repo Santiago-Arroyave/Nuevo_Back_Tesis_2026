@@ -11,6 +11,7 @@ public class PrioridadResponse {
     private String descripcion;
     private String color;
     private String imagenUrl;
+    @Deprecated
     private String imagenBase64;
     private Boolean estado;
 }

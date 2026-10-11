@@ -9,14 +9,16 @@ import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.EvidenciaReporteRepository;
 import Back_Goblink_park.demo.repository.ReporteRepository;
 import Back_Goblink_park.demo.service.interfaces.EvidenciaReporteService;
+import Back_Goblink_park.demo.service.interfaces.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EvidenciaReporteServiceImpl implements EvidenciaReporteService {
@@ -26,9 +28,10 @@ public class EvidenciaReporteServiceImpl implements EvidenciaReporteService {
     // =====================================================
     private final EvidenciaReporteRepository evidenciaRepository;
     private final ReporteRepository reporteRepository;
+    private final FileStorageService fileStorageService;
 
     // =====================================================
-    // CREAR EVIDENCIA (CON BASE64)
+    // CREAR EVIDENCIA (CON SUPABASE STORAGE)
     // =====================================================
     @Override
     @Transactional
@@ -37,16 +40,21 @@ public class EvidenciaReporteServiceImpl implements EvidenciaReporteService {
         Reporte reporte = reporteRepository.findById(request.getReporteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado"));
 
-        // ✅ Obtener bytes del archivo
-        byte[] archivoBinario = request.getArchivoAsBytes();
+        String urlArchivo = request.getUrlArchivo();
+        if (request.getArchivo() != null && !request.getArchivo().isEmpty()) {
+            urlArchivo = fileStorageService.uploadFile(request.getArchivo(), "reportes");
+        }
 
         EvidenciaReporte evidencia = EvidenciaReporte.builder()
                 .reporte(reporte)
-                .archivoBinario(archivoBinario)  // ✅ Usar archivoBinario
+                .urlArchivo(urlArchivo)
                 .tipoArchivo(request.getTipoArchivo())
-                .nombreArchivo(request.getNombreArchivo())
-                .tamanoArchivo(request.getTamanoArchivo())
-                .mimeType(request.getMimeType())
+                .nombreArchivo(request.getNombreArchivo() != null ? request.getNombreArchivo() :
+                        (request.getArchivo() != null ? request.getArchivo().getOriginalFilename() : null))
+                .tamanoArchivo(request.getTamanoArchivo() != null ? request.getTamanoArchivo() :
+                        (request.getArchivo() != null ? request.getArchivo().getSize() : null))
+                .mimeType(request.getMimeType() != null ? request.getMimeType() :
+                        (request.getArchivo() != null ? request.getArchivo().getContentType() : null))
                 .descripcion(request.getDescripcion())
                 .esPrincipal(request.getEsPrincipal() != null ? request.getEsPrincipal() : false)
                 .fechaCarga(LocalDateTime.now())
@@ -55,10 +63,8 @@ public class EvidenciaReporteServiceImpl implements EvidenciaReporteService {
         EvidenciaReporte evidenciaGuardada = evidenciaRepository.save(evidencia);
 
         // Si es principal, actualizar foto principal del reporte
-        if (Boolean.TRUE.equals(evidenciaGuardada.getEsPrincipal())) {
-            // ✅ Convertir byte[] a Base64 para guardar en reporte.fotoPrincipalUrl
-            String base64 = Base64.getEncoder().encodeToString(evidenciaGuardada.getArchivoBinario());
-            reporte.setFotoPrincipalUrl(base64);
+        if (Boolean.TRUE.equals(evidenciaGuardada.getEsPrincipal()) && urlArchivo != null) {
+            reporte.setFotoPrincipalUrl(urlArchivo);
             reporteRepository.save(reporte);
         }
 
@@ -80,9 +86,7 @@ public class EvidenciaReporteServiceImpl implements EvidenciaReporteService {
     // LISTAR POR REPORTE
     // =====================================================
     @Override
-
     public List<EvidenciaReporteResponse> listarPorReporte(Long reporteId) {
-        // ✅ Usamos la nueva consulta que garantiza el reporteId
         return evidenciaRepository.findResponsesByReporteId(reporteId);
     }
 
@@ -104,6 +108,11 @@ public class EvidenciaReporteServiceImpl implements EvidenciaReporteService {
     public void eliminarEvidencia(Long id) {
         EvidenciaReporte evidencia = evidenciaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Evidencia no encontrada"));
+
+        if (evidencia.getUrlArchivo() != null && !evidencia.getUrlArchivo().isBlank()) {
+            fileStorageService.deleteFile(evidencia.getUrlArchivo());
+        }
+
         evidenciaRepository.delete(evidencia);
     }
 }

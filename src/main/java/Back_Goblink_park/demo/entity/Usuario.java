@@ -61,10 +61,10 @@ public class Usuario {
     @Column(name = "sobre_mi", columnDefinition = "TEXT")
     private String sobreMi;
 
-    @Column(name = "foto_perfil", columnDefinition = "TEXT")
+    @Column(name = "foto_perfil", length = 1000)
     private String fotoPerfil;
 
-    @Column(name = "foto_portada", columnDefinition = "TEXT")
+    @Column(name = "foto_portada", length = 1000)
     private String fotoPortada;
 
     // =====================================================
