@@ -66,11 +66,14 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/roles/**").hasAuthority("ADMIN")
 
-                        // ✅ 1. PERFIL PROPIO: Permitir a cualquier usuario autenticado (DEBE IR ANTES DEL /**)
-                        .requestMatchers(HttpMethod.PUT, "/api/usuarios/perfil").authenticated()
+                        // ✅ 1. PERFIL PROPIO: Permitir a cualquier usuario autenticado (GET y PUT) (DEBE IR ANTES DEL /**)
+                        .requestMatchers("/api/usuarios/perfil").authenticated()
 
                         // ✅ 2. LISTAR USUARIOS: Permitir a ADMIN y USER (DEBE IR ANTES DEL /**)
                         .requestMatchers(HttpMethod.GET, "/api/usuarios").hasAnyAuthority("ADMIN", "USER")
+
+                        // ✅ ESTADÍSTICAS DE USUARIO: Permitir a ADMIN y USER (DEBE IR ANTES DEL /**)
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/*/estadisticas").hasAnyAuthority("ADMIN", "USER")
 
                         // ✅ 3. RESTO DE USUARIOS: Solo ADMIN (El /** captura el resto: POST, GET /{id}, PUT /{id}, DELETE, etc.)
                         .requestMatchers("/api/usuarios/**").hasAuthority("ADMIN")

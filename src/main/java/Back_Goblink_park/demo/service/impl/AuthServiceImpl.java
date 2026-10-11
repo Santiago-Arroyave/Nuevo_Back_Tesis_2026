@@ -75,7 +75,9 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         // 1. Buscar usuario por correo
-        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
+        String correoLimpio = request.getCorreo() != null ? request.getCorreo().trim() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoLimpio)
+                .or(() -> usuarioRepository.findByCorreo(correoLimpio))
                 .orElseThrow(() -> new BusinessException("Credenciales inválidas"));
 
         // 2. 🔒 VALIDAR QUE EL USUARIO ESTÉ ACTIVO
@@ -165,7 +167,9 @@ public class AuthServiceImpl implements AuthService {
     // =====================================================
     @Override
     public UserResponse getMe(String correoUsuario) {
-        Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
+        String correoLimpio = correoUsuario != null ? correoUsuario.trim() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoLimpio)
+                .or(() -> usuarioRepository.findByCorreo(correoLimpio))
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Usuario no encontrado con correo: " + correoUsuario));
 

@@ -1,6 +1,7 @@
 package Back_Goblink_park.demo.controller;
 
 import Back_Goblink_park.demo.dto.request.UserRequest;
+import Back_Goblink_park.demo.dto.response.UserEstadisticasResponse;
 import Back_Goblink_park.demo.dto.response.UserResponse;
 import Back_Goblink_park.demo.service.interfaces.UserService;
 import jakarta.validation.Valid;
@@ -63,30 +64,105 @@ public class UserController {
     }
 
     // =====================================================
+    // OBTENER PERFIL PROPIO - AUTENTICADO
+    // =====================================================
+    @GetMapping("/perfil")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponse> obtenerMiPerfil() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String correoUsuario = authentication.getName();
+        UserResponse response = userService.obtenerPerfilPorCorreo(correoUsuario);
+        return ResponseEntity.ok(response);
+    }
+
+    // =====================================================
     // ACTUALIZAR PERFIL PROPIO (CON FOTO) - AUTENTICADO
     // =====================================================
-    @PutMapping(value = "/perfil", consumes = "multipart/form-data")
+    @PutMapping(value = "/perfil", consumes = {"multipart/form-data", "application/x-www-form-urlencoded"})
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponse> actualizarPerfil(
             @RequestParam(required = false) String nombres,
+            @RequestParam(required = false) String apellidos,
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String telefono,
-            @RequestParam(required = false) MultipartFile fotoPerfil
+            @RequestParam(required = false) String documento,
+            @RequestParam(required = false) String documentoIdentidad,
+            @RequestParam(required = false) String entidad,
+            @RequestParam(required = false) String cargoRol,
+            @RequestParam(required = false) String cargo_rol,
+            @RequestParam(required = false) String municipioResidencia,
+            @RequestParam(required = false) String municipio_residencia,
+            @RequestParam(required = false) String sobreMi,
+            @RequestParam(required = false) String sobre_mi,
+            @RequestPart(value = "fotoPerfil", required = false) MultipartFile fotoPerfil,
+            @RequestPart(value = "fotoPortada", required = false) MultipartFile fotoPortada
     ) {
         // Obtener usuario autenticado del SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String correoUsuario = authentication.getName();
 
-        // ✅ LLAMAR AL SERVICE CORRECTAMENTE
+        String docFinal = (documentoIdentidad != null && !documentoIdentidad.isBlank()) ? documentoIdentidad : documento;
+        String cargoFinal = (cargoRol != null && !cargoRol.isBlank()) ? cargoRol : cargo_rol;
+        String municipioFinal = (municipioResidencia != null && !municipioResidencia.isBlank()) ? municipioResidencia : municipio_residencia;
+        String sobreMiFinal = (sobreMi != null && !sobreMi.isBlank()) ? sobreMi : sobre_mi;
+
         UserResponse updated = userService.actualizarPerfilPorCorreo(
                 correoUsuario,
                 nombres,
+                apellidos,
                 username,
                 telefono,
-                fotoPerfil
+                docFinal,
+                entidad,
+                cargoFinal,
+                municipioFinal,
+                sobreMiFinal,
+                fotoPerfil,
+                fotoPortada
         );
 
         return ResponseEntity.ok(updated);
+    }
+
+    // =====================================================
+    // ACTUALIZAR PERFIL PROPIO (JSON) - AUTENTICADO
+    // =====================================================
+    @PutMapping(value = "/perfil", consumes = "application/json")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponse> actualizarPerfilJson(
+            @RequestBody UserRequest request
+    ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String correoUsuario = authentication.getName();
+
+        UserResponse updated = userService.actualizarPerfilPorCorreo(
+                correoUsuario,
+                request.getNombres(),
+                request.getApellidos(),
+                request.getUsername(),
+                request.getTelefono(),
+                request.resolverDocumento(),
+                request.getEntidad(),
+                request.resolverCargo(),
+                request.resolverMunicipio(),
+                request.resolverSobreMi(),
+                null,
+                null,
+                request.getFotoPerfil(),
+                request.getFotoPortada()
+        );
+
+        return ResponseEntity.ok(updated);
+    }
+
+    // =====================================================
+    // OBTENER ESTADÍSTICAS DEL USUARIO - ADMIN / USER
+    // =====================================================
+    @GetMapping("/{id}/estadisticas")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
+    public ResponseEntity<UserEstadisticasResponse> obtenerEstadisticas(@PathVariable Long id) {
+        UserEstadisticasResponse response = userService.obtenerEstadisticas(id);
+        return ResponseEntity.ok(response);
     }
 
     // =====================================================

@@ -2,6 +2,7 @@ package Back_Goblink_park.demo.service.impl;
 
 import Back_Goblink_park.demo.dto.mapper.UserMapper;
 import Back_Goblink_park.demo.dto.request.UserRequest;
+import Back_Goblink_park.demo.dto.response.UserEstadisticasResponse;
 import Back_Goblink_park.demo.dto.response.UserResponse;
 import Back_Goblink_park.demo.entity.Rol;
 import Back_Goblink_park.demo.entity.Usuario;
@@ -19,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -56,14 +58,23 @@ public class UserServiceImpl implements UserService {
         String hash = passwordEncoder.encode(request.getPassword());
 
         // Crear entidad
+        String doc = request.getDocumentoIdentidad() != null ? request.getDocumentoIdentidad() : request.getDocumento();
+
         Usuario usuario = Usuario.builder()
                 .rol(rol)
                 .nombres(request.getNombres())
+                .apellidos(request.getApellidos())
                 .correo(request.getCorreo())
                 .username(request.getUsername())
                 .passwordHash(hash)
                 .telefono(request.getTelefono())
+                .documentoIdentidad(doc)
+                .entidad(request.getEntidad())
+                .cargoRol(request.getCargoRol())
+                .municipioResidencia(request.getMunicipioResidencia())
+                .sobreMi(request.getSobreMi())
                 .fotoPerfil(request.getFotoPerfil())
+                .fotoPortada(request.getFotoPortada())
                 .estado(request.getEstado() != null ? request.getEstado() : true)
                 .build();
 
@@ -108,10 +119,35 @@ public class UserServiceImpl implements UserService {
 
         usuario.setRol(rol);
         usuario.setNombres(request.getNombres());
+        if (request.getApellidos() != null) {
+            usuario.setApellidos(request.getApellidos());
+        }
         usuario.setCorreo(request.getCorreo());
         usuario.setUsername(request.getUsername());
         usuario.setTelefono(request.getTelefono());
-        usuario.setFotoPerfil(request.getFotoPerfil());
+
+        String doc = request.getDocumentoIdentidad() != null ? request.getDocumentoIdentidad() : request.getDocumento();
+        if (doc != null) {
+            usuario.setDocumentoIdentidad(doc);
+        }
+        if (request.getEntidad() != null) {
+            usuario.setEntidad(request.getEntidad());
+        }
+        if (request.getCargoRol() != null) {
+            usuario.setCargoRol(request.getCargoRol());
+        }
+        if (request.getMunicipioResidencia() != null) {
+            usuario.setMunicipioResidencia(request.getMunicipioResidencia());
+        }
+        if (request.getSobreMi() != null) {
+            usuario.setSobreMi(request.getSobreMi());
+        }
+        if (request.getFotoPerfil() != null) {
+            usuario.setFotoPerfil(request.getFotoPerfil());
+        }
+        if (request.getFotoPortada() != null) {
+            usuario.setFotoPortada(request.getFotoPortada());
+        }
 
         if (request.getEstado() != null) {
             usuario.setEstado(request.getEstado());
@@ -126,7 +162,117 @@ public class UserServiceImpl implements UserService {
     }
 
     // =====================================================
-    // ACTUALIZAR PERFIL PROPIO (CON FOTO DE PERFIL) - NUEVO MÉTODO ✅
+    // ACTUALIZAR PERFIL PROPIO (COMPLETO) - USUARIO AUTENTICADO
+    // =====================================================
+    @Override
+    @Transactional
+    public UserResponse actualizarPerfilPorCorreo(
+            String correoUsuario,
+            String nombres,
+            String apellidos,
+            String username,
+            String telefono,
+            String documentoIdentidad,
+            String entidad,
+            String cargoRol,
+            String municipioResidencia,
+            String sobreMi,
+            MultipartFile fotoPerfil,
+            MultipartFile fotoPortada
+    ) {
+        return actualizarPerfilPorCorreo(
+                correoUsuario,
+                nombres,
+                apellidos,
+                username,
+                telefono,
+                documentoIdentidad,
+                entidad,
+                cargoRol,
+                municipioResidencia,
+                sobreMi,
+                fotoPerfil,
+                fotoPortada,
+                null,
+                null
+        );
+    }
+
+    @Override
+    @Transactional
+    public UserResponse actualizarPerfilPorCorreo(
+            String correoUsuario,
+            String nombres,
+            String apellidos,
+            String username,
+            String telefono,
+            String documentoIdentidad,
+            String entidad,
+            String cargoRol,
+            String municipioResidencia,
+            String sobreMi,
+            MultipartFile fotoPerfil,
+            MultipartFile fotoPortada,
+            String fotoPerfilBase64,
+            String fotoPortadaBase64
+    ) {
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoUsuario.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
+
+        if (nombres != null && !nombres.isBlank()) usuario.setNombres(nombres.trim());
+        if (apellidos != null) usuario.setApellidos(apellidos.trim());
+        if (username != null && !username.isBlank()) usuario.setUsername(username.trim());
+        if (telefono != null) usuario.setTelefono(telefono.trim());
+        if (documentoIdentidad != null) usuario.setDocumentoIdentidad(documentoIdentidad.trim());
+        if (entidad != null) usuario.setEntidad(entidad.trim());
+        if (cargoRol != null) usuario.setCargoRol(cargoRol.trim());
+        if (municipioResidencia != null) usuario.setMunicipioResidencia(municipioResidencia.trim());
+        if (sobreMi != null) usuario.setSobreMi(sobreMi.trim());
+
+        // Procesar foto de perfil si se envía archivo multipart
+        if (fotoPerfil != null && !fotoPerfil.isEmpty()) {
+            try {
+                byte[] bytes = fotoPerfil.getBytes();
+                String base64Foto = Base64.getEncoder().encodeToString(bytes);
+                usuario.setFotoPerfil(base64Foto.replaceAll("\\s", ""));
+            } catch (IOException e) {
+                throw new RuntimeException("Error al convertir la foto de perfil a Base64: " + e.getMessage(), e);
+            }
+        } else if (fotoPerfilBase64 != null) {
+            usuario.setFotoPerfil(fotoPerfilBase64.replaceAll("\\s", ""));
+        }
+
+        // Procesar foto de portada si se envía archivo multipart
+        if (fotoPortada != null && !fotoPortada.isEmpty()) {
+            try {
+                byte[] bytes = fotoPortada.getBytes();
+                String base64Portada = Base64.getEncoder().encodeToString(bytes);
+                usuario.setFotoPortada(base64Portada.replaceAll("\\s", ""));
+            } catch (IOException e) {
+                throw new RuntimeException("Error al convertir la foto de portada a Base64: " + e.getMessage(), e);
+            }
+        } else if (fotoPortadaBase64 != null) {
+            usuario.setFotoPortada(fotoPortadaBase64.replaceAll("\\s", ""));
+        }
+
+        Usuario usuarioGuardado = usuarioRepository.save(usuario);
+        return UserMapper.toResponse(usuarioGuardado);
+    }
+
+    // =====================================================
+    // OBTENER PERFIL PROPIO POR CORREO - AUTENTICADO
+    // =====================================================
+    @Override
+    @Transactional(readOnly = true)
+    public UserResponse obtenerPerfilPorCorreo(String correoUsuario) {
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoUsuario.trim())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
+
+        return UserMapper.toResponse(usuario);
+    }
+
+    // =====================================================
+    // ACTUALIZAR PERFIL PROPIO (BÁSICO) - SOBRECARGA
     // =====================================================
     @Override
     @Transactional
@@ -137,38 +283,52 @@ public class UserServiceImpl implements UserService {
             String telefono,
             MultipartFile fotoPerfil
     ) {
-        Usuario usuario = usuarioRepository.findByCorreo(correoUsuario)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        return actualizarPerfilPorCorreo(
+                correoUsuario,
+                nombres,
+                null,
+                username,
+                telefono,
+                null,
+                null,
+                null,
+                null,
+                null,
+                fotoPerfil,
+                null
+        );
+    }
 
-        // Actualizar campos solo si no son null/vacíos
-        if (nombres != null && !nombres.isEmpty()) {
-            usuario.setNombres(nombres.trim());
-        }
-        if (username != null && !username.isEmpty()) {
-            // Validar que el username no esté en uso por otro usuario
-            if (!username.equals(usuario.getUsername()) && usuarioRepository.existsByUsername(username)) {
-                throw new BusinessException("El username ya está registrado por otro usuario");
-            }
-            usuario.setUsername(username.trim());
-        }
-        if (telefono != null) {
-            usuario.setTelefono(telefono.trim());
+    // =====================================================
+    // OBTENER ESTADÍSTICAS DEL USUARIO
+    // =====================================================
+    @Override
+    @Transactional(readOnly = true)
+    public UserEstadisticasResponse obtenerEstadisticas(Long idUsuario) {
+        Map<String, Object> stats = usuarioRepository.obtenerEstadisticasUsuarioRaw(idUsuario);
+
+        Long proyectos = 0L;
+        Long reportes = 0L;
+        Long evidencias = 0L;
+
+        if (stats != null) {
+            Object p = stats.get("totalproyectos");
+            if (p == null) p = stats.get("TOTALPROYECTOS");
+            Object r = stats.get("totalreportes");
+            if (r == null) r = stats.get("TOTALREPORTES");
+            Object e = stats.get("totalevidencias");
+            if (e == null) e = stats.get("TOTALEVIDENCIAS");
+
+            if (p instanceof Number) proyectos = ((Number) p).longValue();
+            if (r instanceof Number) reportes = ((Number) r).longValue();
+            if (e instanceof Number) evidencias = ((Number) e).longValue();
         }
 
-        // Procesar foto de perfil si se envía nueva
-        if (fotoPerfil != null && !fotoPerfil.isEmpty()) {
-            try {
-                byte[] bytes = fotoPerfil.getBytes();
-                String base64Foto = Base64.getEncoder().encodeToString(bytes);
-                // Limpiar saltos de línea o espacios
-                usuario.setFotoPerfil(base64Foto.replaceAll("\\s", ""));
-            } catch (IOException e) {
-                throw new RuntimeException("Error al convertir la foto de perfil a Base64: " + e.getMessage(), e);
-            }
-        }
-
-        Usuario actualizado = usuarioRepository.save(usuario);
-        return UserMapper.toResponse(actualizado);
+        return UserEstadisticasResponse.builder()
+                .totalProyectos(proyectos)
+                .totalReportes(reportes)
+                .totalEvidencias(evidencias)
+                .build();
     }
 
     // =====================================================
@@ -203,8 +363,10 @@ public class UserServiceImpl implements UserService {
     // VALIDAR USUARIO ACTIVO (para login)
     // =====================================================
     public void validarUsuarioActivo(String correo) {
-        Usuario usuario = usuarioRepository.findByCorreo(correo)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        String correoLimpio = (correo != null) ? correo.trim() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoLimpio)
+                .or(() -> usuarioRepository.findByCorreo(correoLimpio))
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correo));
 
         if (!usuario.getEstado()) {
             throw new BusinessException("El usuario está inactivo. Contacte al administrador.");

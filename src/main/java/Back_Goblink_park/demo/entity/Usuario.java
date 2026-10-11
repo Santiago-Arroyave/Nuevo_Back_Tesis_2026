@@ -31,6 +31,9 @@ public class Usuario {
     @Column(nullable = false, length = 100)
     private String nombres;
 
+    @Column(name = "apellidos")
+    private String apellidos;
+
     @Column(nullable = false, unique = true, length = 120)
     private String correo;
 
@@ -43,8 +46,26 @@ public class Usuario {
     @Column(length = 20)
     private String telefono;
 
+    @Column(name = "documento_identidad")
+    private String documentoIdentidad;
+
+    @Column(name = "entidad")
+    private String entidad;
+
+    @Column(name = "cargo_rol")
+    private String cargoRol;
+
+    @Column(name = "municipio_residencia")
+    private String municipioResidencia;
+
+    @Column(name = "sobre_mi", columnDefinition = "TEXT")
+    private String sobreMi;
+
     @Column(name = "foto_perfil", columnDefinition = "TEXT")
     private String fotoPerfil;
+
+    @Column(name = "foto_portada", columnDefinition = "TEXT")
+    private String fotoPortada;
 
     // =====================================================
     // CONTROL
