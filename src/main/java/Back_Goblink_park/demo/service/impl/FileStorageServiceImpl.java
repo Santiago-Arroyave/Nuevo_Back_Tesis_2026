@@ -2,8 +2,10 @@ package Back_Goblink_park.demo.service.impl;
 
 import Back_Goblink_park.demo.exception.BusinessException;
 import Back_Goblink_park.demo.service.interfaces.FileStorageService;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -17,19 +19,28 @@ import java.util.UUID;
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
 
-    @Value("${supabase.url:https://znkoxmkxkimteknuacya.supabase.co}")
+    @Value("${supabase.url:${SUPABASE_URL:https://znkoxmkxkimteknuacya.supabase.co}}")
     private String supabaseUrl;
 
-    @Value("${supabase.key:}")
+    @Value("${supabase.key:${SUPABASE_KEY:${SUPABASE_SERVICE_ROLE_KEY:${SUPABASE_ANON_KEY:}}}}")
     private String supabaseKey;
 
-    @Value("${supabase.storage.bucket:goblin-media}")
+    @Value("${supabase.storage.bucket:${SUPABASE_STORAGE_BUCKET:goblin-media}}")
     private String bucketName;
 
     private final RestClient restClient;
 
     public FileStorageServiceImpl() {
         this.restClient = RestClient.builder().build();
+    }
+
+    @PostConstruct
+    public void init() {
+        if (supabaseKey == null || supabaseKey.isBlank()) {
+            log.warn("⚠️ [FileStorageService] SUPABASE_KEY no está configurada o está vacía. Es requerida para subir archivos a Supabase Storage.");
+        } else {
+            log.info("✅ [FileStorageService] Configurado correctamente para bucket '{}' en {}", bucketName, supabaseUrl);
+        }
     }
 
     @Override
@@ -52,6 +63,12 @@ public class FileStorageServiceImpl implements FileStorageService {
     public String uploadBytes(byte[] bytes, String originalFilename, String contentType, String folder) {
         if (bytes == null || bytes.length == 0) {
             return null;
+        }
+
+        String key = (supabaseKey != null) ? supabaseKey.trim() : "";
+        if (key.isBlank()) {
+            log.error("Clave de Supabase no configurada (SUPABASE_KEY). Imposible subir archivo a Supabase Storage.");
+            throw new BusinessException("Configuración de Supabase Storage incompleta: SUPABASE_KEY no está definida en las variables de entorno.");
         }
 
         String cleanFolder = (folder != null) ? folder.trim().replaceAll("^/+|/+$", "") : "general";
@@ -77,17 +94,16 @@ public class FileStorageServiceImpl implements FileStorageService {
         log.info("Subiendo archivo a Supabase Storage: endpoint={}, size={} bytes", uploadEndpoint, bytes.length);
 
         try {
-            RestClient.RequestBodySpec requestSpec = restClient.post()
+            ResponseEntity<Void> response = restClient.post()
                     .uri(uploadEndpoint)
                     .contentType(MediaType.parseMediaType(contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM_VALUE))
-                    .header("x-upsert", "true");
-
-            if (supabaseKey != null && !supabaseKey.isBlank()) {
-                requestSpec.header("Authorization", "Bearer " + supabaseKey.trim())
-                        .header("apikey", supabaseKey.trim());
-            }
-
-            ResponseEntity<Void> response = requestSpec.body(bytes).retrieve().toBodilessEntity();
+                    .header("apiKey", key)
+                    .header("apikey", key)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + key)
+                    .header("x-upsert", "true")
+                    .body(bytes)
+                    .retrieve()
+                    .toBodilessEntity();
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 String publicUrl = cleanBaseUrl + "/storage/v1/object/public/" + bucketName + "/" + objectPath;
@@ -115,17 +131,24 @@ public class FileStorageServiceImpl implements FileStorageService {
             return;
         }
 
+        String key = (supabaseKey != null) ? supabaseKey.trim() : "";
+        if (key.isBlank()) {
+            log.warn("No se puede eliminar el archivo {} de Supabase Storage: SUPABASE_KEY no configurada", fileUrl);
+            return;
+        }
+
         String objectPath = fileUrl.substring(index + marker.length());
         String cleanBaseUrl = (supabaseUrl != null) ? supabaseUrl.trim().replaceAll("/+$", "") : "";
         String deleteEndpoint = cleanBaseUrl + "/storage/v1/object/" + bucketName + "/" + objectPath;
 
         try {
-            RestClient.RequestHeadersSpec<?> requestSpec = restClient.delete().uri(deleteEndpoint);
-            if (supabaseKey != null && !supabaseKey.isBlank()) {
-                requestSpec.header("Authorization", "Bearer " + supabaseKey.trim())
-                        .header("apikey", supabaseKey.trim());
-            }
-            requestSpec.retrieve().toBodilessEntity();
+            restClient.delete()
+                    .uri(deleteEndpoint)
+                    .header("apiKey", key)
+                    .header("apikey", key)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + key)
+                    .retrieve()
+                    .toBodilessEntity();
             log.info("Archivo eliminado correctamente de Supabase Storage: {}", objectPath);
         } catch (Exception ex) {
             log.warn("No se pudo eliminar el archivo {} de Supabase Storage: {}", objectPath, ex.getMessage());
