@@ -29,6 +29,6 @@ public class CategoriaRequest {
     private String color;
 
     // URL pública generada desde Supabase Storage (para peticiones JSON)
-    @JsonAlias({"imagen_url", "imagenUrl"})
+    @JsonAlias({ "imagen_url", "imagenUrl" })
     private String imagenUrl;
 }

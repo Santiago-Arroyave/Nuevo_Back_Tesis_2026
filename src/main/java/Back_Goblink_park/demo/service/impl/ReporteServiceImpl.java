@@ -390,48 +390,54 @@ public class ReporteServiceImpl implements ReporteService {
         boolean esAdmin = usuarioAutenticado.getRol() != null &&
                 "ADMIN".equalsIgnoreCase(usuarioAutenticado.getRol().getNombre());
 
-        // 3. Determinar si es el creador/dueño del reporte
-        boolean esPropietario = reporte.getUsuario() != null &&
-                (reporte.getUsuario().getId().equals(usuarioAutenticado.getId()) ||
-                        reporte.getUsuario().getCorreo().equalsIgnoreCase(correoSanitizado));
+        // 3. Determinar si es el creador/dueño del reporte (Comprobación robusta)
+        Long idAutorReporte = (reporte.getUsuario() != null) ? reporte.getUsuario().getId() : null;
+        String correoAutorReporte = (reporte.getUsuario() != null && reporte.getUsuario().getCorreo() != null)
+                ? reporte.getUsuario().getCorreo().trim().toLowerCase() : "";
 
-        // 4. Validación de permisos: Solo el dueño O un ADMIN pueden editar
-        if (!esAdmin && !esPropietario) {
-            throw new AccessDeniedException("No tienes permisos para editar este reporte. Solo el creador o un administrador pueden modificarlo.");
-        }
+        boolean esPropietario = (idAutorReporte != null && idAutorReporte.equals(usuarioAutenticado.getId()))
+                || (!correoAutorReporte.isEmpty() && correoAutorReporte.equalsIgnoreCase(correoSanitizado));
 
-        // 5. Aplicar los cambios en campos generales
-        if (request.getTitulo() != null && !request.getTitulo().isBlank()) {
-            reporte.setTitulo(request.getTitulo().trim());
-        }
-        if (request.getSector() != null) {
-            reporte.setSector(request.getSector());
-        }
-        if (request.getDescripcion() != null) {
-            reporte.setDescripcion(request.getDescripcion());
-        }
-        if (request.getDatosEspecificos() != null) {
-            reporte.setDatosEspecificos(request.getDatosEspecificos());
-        }
+            log.info("Edición reporte ID {}: usuarioAutenticado={}, idAutor={}, esAdmin={}, esPropietario={}",
+                    id, usuarioAutenticado.getId(), idAutorReporte, esAdmin, esPropietario);
 
-        // 6. Gestionar fotos y evidencias si vienen en la solicitud
-        if (request.getEvidencias() != null && !request.getEvidencias().isEmpty()) {
-            gestionarEvidencias(reporte, request.getEvidencias());
+            // 4. Validación de permisos: Solo el dueño O un ADMIN pueden editar
+            if (!esAdmin && !esPropietario) {
+                throw new AccessDeniedException("No tienes permisos para editar este reporte. Solo el creador o un administrador pueden modificarlo.");
+            }
+
+            // 5. Aplicar los cambios en campos generales
+            if (request.getTitulo() != null && !request.getTitulo().isBlank()) {
+                reporte.setTitulo(request.getTitulo().trim());
+            }
+            if (request.getSector() != null) {
+                reporte.setSector(request.getSector());
+            }
+            if (request.getDescripcion() != null) {
+                reporte.setDescripcion(request.getDescripcion());
+            }
+            if (request.getDatosEspecificos() != null) {
+                reporte.setDatosEspecificos(request.getDatosEspecificos());
+            }
+
+            // 6. Gestionar fotos y evidencias si vienen en la solicitud
+            if (request.getEvidencias() != null && !request.getEvidencias().isEmpty()) {
+                gestionarEvidencias(reporte, request.getEvidencias());
+            }
+
+            // 7. Guardar cambios
+            Reporte reporteGuardado = reporteRepository.save(reporte);
+
+            // 8. Cargar evidencias actualizadas y mapear la respuesta
+            List<EvidenciaReporte> evidenciasActualizadas = evidenciaRepository.findByReporteId(reporteGuardado.getId());
+            reporteGuardado.setEvidencias(evidenciasActualizadas);
+
+            ReporteResponse dto = ReporteMapper.toResponse(reporteGuardado);
+            if (dto != null) {
+                dto.setCargoRol(reporteGuardado.getUsuario() != null ? reporteGuardado.getUsuario().getCargoRol() : null);
+            }
+            return dto;
         }
-
-        // 7. Guardar cambios
-        Reporte reporteGuardado = reporteRepository.save(reporte);
-
-        // 8. Cargar evidencias actualizadas y mapear la respuesta
-        List<EvidenciaReporte> evidenciasActualizadas = evidenciaRepository.findByReporteId(reporteGuardado.getId());
-        reporteGuardado.setEvidencias(evidenciasActualizadas);
-
-        ReporteResponse dto = ReporteMapper.toResponse(reporteGuardado);
-        if (dto != null) {
-            dto.setCargoRol(reporteGuardado.getUsuario() != null ? reporteGuardado.getUsuario().getCargoRol() : null);
-        }
-        return dto;
-    }
 
     // =====================================================
     // MÉTODO AUXILIAR: Gestionar evidencias (CRUD)
