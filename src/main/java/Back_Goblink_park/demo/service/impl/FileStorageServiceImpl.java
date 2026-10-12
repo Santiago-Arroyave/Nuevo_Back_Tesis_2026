@@ -36,11 +36,33 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @PostConstruct
     public void init() {
-        if (supabaseKey == null || supabaseKey.isBlank()) {
+        String sanitizedKey = getSanitizedKey();
+        if (sanitizedKey.isBlank()) {
             log.warn("⚠️ [FileStorageService] SUPABASE_KEY no está configurada o está vacía. Es requerida para subir archivos a Supabase Storage.");
         } else {
-            log.info("✅ [FileStorageService] Configurado correctamente para bucket '{}' en {}", bucketName, supabaseUrl);
+            // Log de diagnóstico seguro (muestra prefijo y longitud sin exponer la clave completa)
+            String preview = sanitizedKey.length() > 10 ? sanitizedKey.substring(0, 10) + "..." : "corta";
+            log.info("✅ [FileStorageService] Configurado para bucket '{}' en {}. Clave detectada: (longitud={}, prefijo={})",
+                    bucketName, supabaseUrl, sanitizedKey.length(), preview);
         }
+    }
+
+    /**
+     * Limpia la clave de Supabase para evitar errores de tipo 'Invalid Compact JWS':
+     * Remueve espacios, saltos de línea, comillas envolventes y prefijos 'Bearer ' accidentales.
+     */
+    private String getSanitizedKey() {
+        if (supabaseKey == null) {
+            return "";
+        }
+        String key = supabaseKey.trim()
+                .replaceAll("[\r\n]", "")
+                .replaceAll("^[\"']+|[\"']+$", ""); // Elimina comillas iniciales y finales
+
+        if (key.startsWith("Bearer ")) {
+            key = key.substring(7).trim();
+        }
+        return key;
     }
 
     @Override
@@ -65,7 +87,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             return null;
         }
 
-        String key = (supabaseKey != null) ? supabaseKey.trim() : "";
+        String key = getSanitizedKey();
         if (key.isBlank()) {
             log.error("Clave de Supabase no configurada (SUPABASE_KEY). Imposible subir archivo a Supabase Storage.");
             throw new BusinessException("Configuración de Supabase Storage incompleta: SUPABASE_KEY no está definida en las variables de entorno.");
@@ -97,7 +119,6 @@ public class FileStorageServiceImpl implements FileStorageService {
             ResponseEntity<Void> response = restClient.post()
                     .uri(uploadEndpoint)
                     .contentType(MediaType.parseMediaType(contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM_VALUE))
-                    .header("apiKey", key)
                     .header("apikey", key)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + key)
                     .header("x-upsert", "true")
@@ -131,7 +152,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             return;
         }
 
-        String key = (supabaseKey != null) ? supabaseKey.trim() : "";
+        String key = getSanitizedKey();
         if (key.isBlank()) {
             log.warn("No se puede eliminar el archivo {} de Supabase Storage: SUPABASE_KEY no configurada", fileUrl);
             return;
@@ -144,7 +165,6 @@ public class FileStorageServiceImpl implements FileStorageService {
         try {
             restClient.delete()
                     .uri(deleteEndpoint)
-                    .header("apiKey", key)
                     .header("apikey", key)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + key)
                     .retrieve()
