@@ -378,61 +378,59 @@ public class ReporteServiceImpl implements ReporteService {
     @Override
     @Transactional
     public ReporteResponse actualizarReporte(Long id, String correoUsuario, ReporteUpdateRequest request) {
-
-        // 1️⃣ Validar que el reporte existe y pertenece al usuario (o es admin)
+        // 1. Buscar reporte y usuario que hace la petición
         Reporte reporte = reporteRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado con id: " + id));
 
-        // Verificar permisos: solo admin o el creador pueden editar
-        if (!reporte.getUsuario().getCorreo().equals(correoUsuario)
-                && !SecurityContextHolder.getContext().getAuthentication().getAuthorities()
-                .stream().anyMatch(a -> a.getAuthority().equals("ADMIN"))) {
-            throw new AccessDeniedException("No tienes permisos para editar este reporte");
+        String correoSanitizado = (correoUsuario != null) ? correoUsuario.trim().toLowerCase() : "";
+        Usuario usuarioAutenticado = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
+
+        // 2. Determinar si es Administrador
+        boolean esAdmin = usuarioAutenticado.getRol() != null &&
+                "ADMIN".equalsIgnoreCase(usuarioAutenticado.getRol().getNombre());
+
+        // 3. Determinar si es el creador/dueño del reporte
+        boolean esPropietario = reporte.getUsuario() != null &&
+                (reporte.getUsuario().getId().equals(usuarioAutenticado.getId()) ||
+                        reporte.getUsuario().getCorreo().equalsIgnoreCase(correoSanitizado));
+
+        // 4. Validación de permisos: Solo el dueño O un ADMIN pueden editar
+        if (!esAdmin && !esPropietario) {
+            throw new AccessDeniedException("No tienes permisos para editar este reporte. Solo el creador o un administrador pueden modificarlo.");
         }
 
-        // 2️⃣ Actualizar campos básicos (solo si vienen en el request)
-        if (request.getTitulo() != null) reporte.setTitulo(request.getTitulo());
-        if (request.getDescripcion() != null) reporte.setDescripcion(request.getDescripcion());
-        if (request.getFechaEvento() != null) reporte.setFechaEvento(request.getFechaEvento());
-        if (request.getLatitud() != null) reporte.setLatitud(request.getLatitud());
-        if (request.getLongitud() != null) reporte.setLongitud(request.getLongitud());
-        if (request.getDireccionReferencia() != null) reporte.setDireccionReferencia(request.getDireccionReferencia());
-        if (request.getSector() != null) reporte.setSector(request.getSector());
-        if (request.getDatosEspecificos() != null) reporte.setDatosEspecificos(request.getDatosEspecificos());
-        if (request.getPublico() != null) reporte.setPublico(request.getPublico());
-        if (request.getEstado() != null) reporte.setEstado(request.getEstado());
-        if (request.getFotoPrincipalUrl() != null && !request.getFotoPrincipalUrl().isBlank()) {
-            reporte.setFotoPrincipalUrl(request.getFotoPrincipalUrl().trim());
+        // 5. Aplicar los cambios en campos generales
+        if (request.getTitulo() != null && !request.getTitulo().isBlank()) {
+            reporte.setTitulo(request.getTitulo().trim());
+        }
+        if (request.getSector() != null) {
+            reporte.setSector(request.getSector());
+        }
+        if (request.getDescripcion() != null) {
+            reporte.setDescripcion(request.getDescripcion());
+        }
+        if (request.getDatosEspecificos() != null) {
+            reporte.setDatosEspecificos(request.getDatosEspecificos());
         }
 
-        // Actualizar categoría si cambia
-        if (request.getCategoriaId() != null) {
-            Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
-            reporte.setCategoria(categoria);
-        }
-
-        // Actualizar prioridad si cambia
-        if (request.getPrioridadId() != null) {
-            Prioridad prioridad = prioridadRepository.findById(request.getPrioridadId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Prioridad no encontrada"));
-            reporte.setPrioridad(prioridad);
-        }
-
-        // 3️⃣ Gestionar evidencias si vienen en el request
-        if (request.getEvidencias() != null) {
+        // 6. Gestionar fotos y evidencias si vienen en la solicitud
+        if (request.getEvidencias() != null && !request.getEvidencias().isEmpty()) {
             gestionarEvidencias(reporte, request.getEvidencias());
         }
 
-        // 4️⃣ Guardar cambios
-        Reporte actualizado = reporteRepository.save(reporte);
+        // 7. Guardar cambios
+        Reporte reporteGuardado = reporteRepository.save(reporte);
 
-        // 5️⃣ Recargar con evidencias para la respuesta
-        List<EvidenciaReporte> evidenciasCargadas =
-                evidenciaRepository.findByReporteId(actualizado.getId());
-        actualizado.setEvidencias(evidenciasCargadas);
+        // 8. Cargar evidencias actualizadas y mapear la respuesta
+        List<EvidenciaReporte> evidenciasActualizadas = evidenciaRepository.findByReporteId(reporteGuardado.getId());
+        reporteGuardado.setEvidencias(evidenciasActualizadas);
 
-        return ReporteMapper.toResponse(actualizado);
+        ReporteResponse dto = ReporteMapper.toResponse(reporteGuardado);
+        if (dto != null) {
+            dto.setCargoRol(reporteGuardado.getUsuario() != null ? reporteGuardado.getUsuario().getCargoRol() : null);
+        }
+        return dto;
     }
 
     // =====================================================
