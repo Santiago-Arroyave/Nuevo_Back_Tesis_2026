@@ -1,5 +1,6 @@
 package Back_Goblink_park.demo.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -28,6 +30,11 @@ public class ReporteUpdateRequest {
     private Double latitud;
     private Double longitud;
     private String direccionReferencia;
+    private String sector;
+
+    @JsonAlias({"datos_especificos", "datosEspecificos"})
+    private Map<String, Object> datosEspecificos;
+
     private Long categoriaId;
     private Long prioridadId;
     private Boolean publico;

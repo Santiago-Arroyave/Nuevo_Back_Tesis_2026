@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reportes")
@@ -44,6 +45,9 @@ public class ReporteController {
             @RequestParam("longitud") Double longitud,
             @RequestParam(value = "direccionReferencia", required = false) String direccionReferencia,
             @RequestParam(value = "fuente", required = false, defaultValue = "mobile") String fuente,
+            @RequestParam(value = "sector", required = false) String sector,
+            @RequestParam(value = "datosEspecificos", required = false) String datosEspecificos,
+            @RequestParam(value = "datos_especificos", required = false) String datosEspecificosSnake,
 
             // Archivos de evidencia (pueden ser múltiples)
             @RequestParam(value = "evidencias", required = false) List<MultipartFile> evidencias,
@@ -55,6 +59,21 @@ public class ReporteController {
             @RequestParam(value = "evidenciasPrincipal", required = false) List<Boolean> evidenciasPrincipal
     ) {
 
+        // Deserializar datosEspecificos si vienen como cadena JSON (multipart)
+        Map<String, Object> mapDatos = null;
+        String rawJson = (datosEspecificos != null && !datosEspecificos.isBlank())
+                ? datosEspecificos
+                : datosEspecificosSnake;
+
+        if (rawJson != null && !rawJson.isBlank()) {
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                mapDatos = objectMapper.readValue(rawJson, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            } catch (Exception e) {
+                // Loguear o ignorar si no es un JSON válido
+            }
+        }
+
         // Construir request básico
         ReporteRequest request = ReporteRequest.builder()
                 .titulo(titulo)
@@ -65,6 +84,8 @@ public class ReporteController {
                 .longitud(longitud)
                 .direccionReferencia(direccionReferencia)
                 .fuente(fuente)
+                .sector(sector)
+                .datosEspecificos(mapDatos)
                 .build();
 
         // Procesar evidencias si vienen archivos

@@ -2,6 +2,7 @@ package Back_Goblink_park.demo.dto.response;
 
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -28,6 +29,8 @@ public class ReporteMapaResponse {
     private Double latitud;
     private Double longitud;
     private String direccionReferencia;
+    private String sector;
+    private Map<String, Object> datosEspecificos;
 
     // =====================================================
     // CATEGORÍA

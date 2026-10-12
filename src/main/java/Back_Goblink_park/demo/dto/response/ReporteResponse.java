@@ -3,6 +3,7 @@ package Back_Goblink_park.demo.dto.response;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -60,6 +61,12 @@ public class ReporteResponse {
     private Double latitud;
     private Double longitud;
     private String direccionReferencia;
+    private String sector;
+
+    // =====================================================
+    // DATOS ESPECÍFICOS POR CATEGORÍA
+    // =====================================================
+    private Map<String, Object> datosEspecificos;
 
     // =====================================================
     // FOTO PRINCIPAL

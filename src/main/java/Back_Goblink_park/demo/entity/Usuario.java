@@ -14,153 +14,138 @@ import java.time.LocalDateTime;
 @Builder
 public class Usuario {
 
-    // =====================================================
-    // ID
-    // =====================================================
+        // =====================================================
+        // ID
+        // =====================================================
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_usuario")
-    private Long id;
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        @Column(name = "id_usuario")
+        private Long id;
 
+        // =====================================================
+        // DATOS PERSONALES
+        // =====================================================
 
-    // =====================================================
-    // DATOS PERSONALES
-    // =====================================================
+        @Column(nullable = false, length = 100)
+        private String nombres;
 
-    @Column(nullable = false, length = 100)
-    private String nombres;
+        @Column(name = "apellidos")
+        private String apellidos;
 
-    @Column(name = "apellidos")
-    private String apellidos;
+        @Column(nullable = false, unique = true, length = 120)
+        private String correo;
 
-    @Column(nullable = false, unique = true, length = 120)
-    private String correo;
+        @Column(unique = true, length = 50)
+        private String username;
 
-    @Column(unique = true, length = 50)
-    private String username;
+        @Column(name = "password_hash", nullable = false)
+        private String passwordHash;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+        @Column(length = 20)
+        private String telefono;
 
-    @Column(length = 20)
-    private String telefono;
+        @Column(name = "documento_identidad")
+        private String documentoIdentidad;
 
-    @Column(name = "documento_identidad")
-    private String documentoIdentidad;
+        @Column(name = "entidad")
+        private String entidad;
 
-    @Column(name = "entidad")
-    private String entidad;
+        @Column(name = "cargo_rol")
+        private String cargoRol;
 
-    @Column(name = "cargo_rol")
-    private String cargoRol;
+        @Column(name = "municipio_residencia")
+        private String municipioResidencia;
 
-    @Column(name = "municipio_residencia")
-    private String municipioResidencia;
+        @Column(name = "sobre_mi", columnDefinition = "TEXT")
+        private String sobreMi;
 
-    @Column(name = "sobre_mi", columnDefinition = "TEXT")
-    private String sobreMi;
+        @Column(name = "foto_perfil", columnDefinition = "TEXT")
+        private String fotoPerfil;
 
-    @Column(name = "foto_perfil", length = 1000)
-    private String fotoPerfil;
+        @Column(name = "foto_portada", columnDefinition = "TEXT")
+        private String fotoPortada;
 
-    @Column(name = "foto_portada", length = 1000)
-    private String fotoPortada;
+        // =====================================================
+        // CONTROL
+        // =====================================================
 
-    // =====================================================
-    // CONTROL
-    // =====================================================
+        @Column(nullable = false)
+        private Boolean estado = true;
 
-    @Column(nullable = false)
-    private Boolean estado = true;
+        // =====================================================
+        // FECHAS
+        // =====================================================
 
-    // =====================================================
-    // FECHAS
-    // =====================================================
+        @Column(name = "fecha_registro")
+        private LocalDateTime fechaRegistro;
 
-    @Column(name = "fecha_registro")
-    private LocalDateTime fechaRegistro;
+        @Column(name = "ultimo_acceso")
+        private LocalDateTime ultimoAcceso;
 
-    @Column(name = "ultimo_acceso")
-    private LocalDateTime ultimoAcceso;
+        @Column(name = "created_at")
+        private LocalDateTime createdAt;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+        @Column(name = "updated_at")
+        private LocalDateTime updatedAt;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+        // =====================================================
+        // RELACIÓN CON ROL
+        // =====================================================
 
-    // =====================================================
-    // RELACIÓN CON ROL
-    // =====================================================
+        @ManyToOne(fetch = FetchType.EAGER)
+        @JoinColumn(name = "id_rol", nullable = false)
+        private Rol rol;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_rol", nullable = false)
-    private Rol rol;
+        // =====================================================
+        // REPORTES CREADOS
+        // =====================================================
 
-    // =====================================================
-    // REPORTES CREADOS
-    // =====================================================
+        @OneToMany(mappedBy = "usuario")
+        private List<Reporte> reportes;
 
-    @OneToMany(
-            mappedBy = "usuario"
-    )
-    private List<Reporte> reportes;
+        // =====================================================
+        // REPORTES VALIDADOS
+        // =====================================================
 
-    // =====================================================
-    // REPORTES VALIDADOS
-    // =====================================================
+        @OneToMany(mappedBy = "validadoPor")
+        private List<Reporte> reportesValidados;
 
-    @OneToMany(
-            mappedBy = "validadoPor"
-    )
-    private List<Reporte> reportesValidados;
+        // =====================================================
+        // COMENTARIOS
+        // =====================================================
 
-    // =====================================================
-    // COMENTARIOS
-    // =====================================================
+        @OneToMany(mappedBy = "usuario")
+        private List<ComentarioReporte> comentarios;
 
-    @OneToMany(
-            mappedBy = "usuario"
-    )
-    private List<ComentarioReporte> comentarios;
+        // =====================================================
+        // SEGUIMIENTOS REALIZADOS
+        // =====================================================
 
-    // =====================================================
-    // SEGUIMIENTOS REALIZADOS
-    // =====================================================
+        @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<SeguimientoProyecto> seguimientosProyecto;
 
-    @OneToMany(
-            mappedBy = "usuario",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<SeguimientoProyecto> seguimientosProyecto;
+        // =====================================================
+        // PROYECTOS PARTICIPANDO
+        // =====================================================
 
-    // =====================================================
-    // PROYECTOS PARTICIPANDO
-    // =====================================================
+        @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
+        private List<ProyectoMiembro> proyectosParticipando;
 
-    @OneToMany(
-            mappedBy = "usuario",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<ProyectoMiembro> proyectosParticipando;
+        // =====================================================
+        // MÉTODOS AUTOMÁTICOS
+        // =====================================================
 
-    // =====================================================
-    // MÉTODOS AUTOMÁTICOS
-    // =====================================================
+        @PrePersist
+        protected void onCreate() {
+                LocalDateTime now = LocalDateTime.now();
+                fechaRegistro = now;
+                createdAt = now;
+                updatedAt = now;
+        }
 
-    @PrePersist
-    protected void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        fechaRegistro = now;
-        createdAt = now;
-        updatedAt = now;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+        @PreUpdate
+        protected void onUpdate() {
+                updatedAt = LocalDateTime.now();
+        }
 }

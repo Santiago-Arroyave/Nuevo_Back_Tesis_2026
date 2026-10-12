@@ -2,9 +2,12 @@ package Back_Goblink_park.demo.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "reportes")
@@ -86,6 +89,13 @@ public class Reporte {
     private Double longitud;
 
     private String direccionReferencia;
+
+    @Column(name = "sector")
+    private String sector;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "datos_especificos", columnDefinition = "jsonb")
+    private Map<String, Object> datosEspecificos;
 
     // =====================================================
     // EVIDENCIA

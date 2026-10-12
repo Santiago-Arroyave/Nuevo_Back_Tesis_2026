@@ -82,6 +82,8 @@ public class ReporteServiceImpl implements ReporteService {
                 .latitud(request.getLatitud())
                 .longitud(request.getLongitud())
                 .direccionReferencia(request.getDireccionReferencia())
+                .sector(request.getSector())
+                .datosEspecificos(request.getDatosEspecificos())
                 .fotoPrincipalUrl(request.getFotoPrincipalUrl())
                 .fuente(request.getFuente())
                 .publico(request.getPublico() != null ? request.getPublico() : true)
@@ -382,6 +384,8 @@ public class ReporteServiceImpl implements ReporteService {
         if (request.getLatitud() != null) reporte.setLatitud(request.getLatitud());
         if (request.getLongitud() != null) reporte.setLongitud(request.getLongitud());
         if (request.getDireccionReferencia() != null) reporte.setDireccionReferencia(request.getDireccionReferencia());
+        if (request.getSector() != null) reporte.setSector(request.getSector());
+        if (request.getDatosEspecificos() != null) reporte.setDatosEspecificos(request.getDatosEspecificos());
         if (request.getPublico() != null) reporte.setPublico(request.getPublico());
         if (request.getEstado() != null) reporte.setEstado(request.getEstado());
         if (request.getFotoPrincipalUrl() != null && !request.getFotoPrincipalUrl().isBlank()) {

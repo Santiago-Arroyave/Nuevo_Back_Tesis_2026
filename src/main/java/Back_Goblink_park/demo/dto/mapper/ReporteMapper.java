@@ -54,6 +54,10 @@ public class ReporteMapper {
                 .latitud(reporte.getLatitud())
                 .longitud(reporte.getLongitud())
                 .direccionReferencia(reporte.getDireccionReferencia())
+                .sector(reporte.getSector())
+
+                // DATOS ESPECÍFICOS POR CATEGORÍA
+                .datosEspecificos(reporte.getDatosEspecificos())
 
                 // EVIDENCIA: URL pública de Supabase Storage
                 .fotoPrincipalUrl(fotoPrincipalUrl)
@@ -171,6 +175,8 @@ public class ReporteMapper {
                 .latitud(reporte.getLatitud())
                 .longitud(reporte.getLongitud())
                 .direccionReferencia(reporte.getDireccionReferencia())
+                .sector(reporte.getSector())
+                .datosEspecificos(reporte.getDatosEspecificos())
 
                 .categoriaId(reporte.getCategoria() != null ? reporte.getCategoria().getId() : null)
                 .categoriaNombre(reporte.getCategoria() != null ? reporte.getCategoria().getNombre() : null)

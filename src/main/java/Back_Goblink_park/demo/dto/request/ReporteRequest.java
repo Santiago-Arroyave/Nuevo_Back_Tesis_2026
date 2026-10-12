@@ -43,6 +43,14 @@ public class ReporteRequest {
 
     private String direccionReferencia;
 
+    // SECTOR DEL PÁRAMO
+    private String sector;
+
+    // DATOS ESPECÍFICOS POR CATEGORÍA (Flora, Fauna, Suelo, Agua, Aire)
+    @com.fasterxml.jackson.annotation.JsonAlias({"datos_especificos", "datosEspecificos"})
+    @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = DatosEspecificosDeserializer.class)
+    private java.util.Map<String, Object> datosEspecificos;
+
     // METADATOS
     private String fuente;
     private Boolean publico;
@@ -86,6 +94,41 @@ public class ReporteRequest {
             } catch (Exception e) {
                 throw new RuntimeException("Error procesando archivo", e);
             }
+        }
+    }
+
+    // =====================================================
+    // HELPER PARA CONVERTIR STRING JSON A MAP
+    // =====================================================
+    public void setDatosEspecificosFromString(String jsonStr) {
+        if (jsonStr == null || jsonStr.isBlank()) {
+            this.datosEspecificos = null;
+            return;
+        }
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            this.datosEspecificos = mapper.readValue(jsonStr, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+        } catch (Exception e) {
+            this.datosEspecificos = null;
+        }
+    }
+
+    // =====================================================
+    // DESERIALIZADOR FLEXIBLE (Soporta JSON Object o JSON String)
+    // =====================================================
+    public static class DatosEspecificosDeserializer extends com.fasterxml.jackson.databind.JsonDeserializer<java.util.Map<String, Object>> {
+        @Override
+        public java.util.Map<String, Object> deserialize(
+                com.fasterxml.jackson.core.JsonParser p,
+                com.fasterxml.jackson.databind.DeserializationContext ctxt
+        ) throws java.io.IOException {
+            if (p.currentToken() == com.fasterxml.jackson.core.JsonToken.VALUE_STRING) {
+                String text = p.getText();
+                if (text == null || text.isBlank()) return null;
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                return mapper.readValue(text, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+            }
+            return p.getCodec().readValue(p, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
         }
     }
 }
