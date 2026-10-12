@@ -442,16 +442,25 @@ public class ReporteServiceImpl implements ReporteService {
     // =====================================================
     // MÉTODO AUXILIAR: Gestionar evidencias (CRUD)
     // =====================================================
+    // =====================================================
+    // MÉTODO AUXILIAR: Gestionar evidencias (CRUD)
+    // =====================================================
     private void gestionarEvidencias(Reporte reporte, List<ReporteUpdateRequest.EvidenciaUpdateRequest> evidenciasReq) {
-        boolean principalAsignada = (reporte.getFotoPrincipalUrl() != null && !reporte.getFotoPrincipalUrl().isBlank());
+        boolean principalAsignada = false;
 
         for (ReporteUpdateRequest.EvidenciaUpdateRequest req : evidenciasReq) {
 
             // ➖ ELIMINAR evidencia existente
             if (Boolean.TRUE.equals(req.getEliminar()) && req.getId() != null) {
                 evidenciaRepository.findById(req.getId()).ifPresent(ev -> {
+                    // Si el archivo está en el storage, se borra
                     if (ev.getUrlArchivo() != null && !ev.getUrlArchivo().isBlank()) {
                         fileStorageService.deleteFile(ev.getUrlArchivo());
+                    }
+                    // Si era la foto principal del reporte, limpiamos la referencia
+                    if (reporte.getFotoPrincipalUrl() != null &&
+                            reporte.getFotoPrincipalUrl().equals(ev.getUrlArchivo())) {
+                        reporte.setFotoPrincipalUrl(null);
                     }
                     evidenciaRepository.delete(ev);
                 });
@@ -476,7 +485,6 @@ public class ReporteServiceImpl implements ReporteService {
                 if (req.getMimeType() != null) evidencia.setMimeType(req.getMimeType());
                 if (req.getDescripcion() != null) evidencia.setDescripcion(req.getDescripcion());
 
-                // Manejar esPrincipal: solo una puede ser principal
                 boolean esPrincipal = Boolean.TRUE.equals(req.getEsPrincipal());
                 if (esPrincipal && !principalAsignada) {
                     evidencia.setEsPrincipal(true);
@@ -490,7 +498,7 @@ public class ReporteServiceImpl implements ReporteService {
 
                 evidenciaRepository.save(evidencia);
 
-            // ➕ CREAR nueva evidencia
+                // ➕ CREAR nueva evidencia
             } else {
                 String urlArchivo = req.getUrlArchivo();
                 if (req.getArchivo() != null && !req.getArchivo().isEmpty()) {
@@ -503,9 +511,7 @@ public class ReporteServiceImpl implements ReporteService {
 
                     if (esPrincipal) {
                         principalAsignada = true;
-                        if (reporte.getFotoPrincipalUrl() == null || reporte.getFotoPrincipalUrl().isBlank()) {
-                            reporte.setFotoPrincipalUrl(urlArchivo);
-                        }
+                        reporte.setFotoPrincipalUrl(urlArchivo);
                     }
 
                     EvidenciaReporte nueva = EvidenciaReporte.builder()
@@ -525,6 +531,17 @@ public class ReporteServiceImpl implements ReporteService {
 
                     evidenciaRepository.save(nueva);
                 }
+            }
+        }
+
+        // Si se eliminó la principal y quedó en null, asignar la primera evidencia restante
+        if (reporte.getFotoPrincipalUrl() == null) {
+            List<EvidenciaReporte> restantes = evidenciaRepository.findByReporteId(reporte.getId());
+            if (!restantes.isEmpty()) {
+                EvidenciaReporte primera = restantes.get(0);
+                primera.setEsPrincipal(true);
+                evidenciaRepository.save(primera);
+                reporte.setFotoPrincipalUrl(primera.getUrlArchivo());
             }
         }
     }
