@@ -27,6 +27,8 @@ public class ReporteMapper {
                 .usuarioNombre(reporte.getUsuario() != null ? reporte.getUsuario().getNombres() : null)
                 .usuarioCorreo(reporte.getUsuario() != null ? reporte.getUsuario().getCorreo() : null)
                 .usuarioUsername(reporte.getUsuario() != null ? reporte.getUsuario().getUsername() : null)
+                .cargoRol(reporte.getUsuario() != null ? reporte.getUsuario().getCargoRol() : null)
+                .usuarioCargoRol(reporte.getUsuario() != null ? reporte.getUsuario().getCargoRol() : null)
 
                 // CATEGORÍA
                 .categoriaId(reporte.getCategoria() != null ? reporte.getCategoria().getId() : null)
@@ -196,6 +198,8 @@ public class ReporteMapper {
                 .usuarioId(reporte.getUsuario() != null ? reporte.getUsuario().getId() : null)
                 .usuarioNombre(reporte.getUsuario() != null ? reporte.getUsuario().getNombres() : null)
                 .usuarioFotoPerfil(usuarioFotoPerfil)
+                .cargoRol(reporte.getUsuario() != null ? reporte.getUsuario().getCargoRol() : null)
+                .usuarioCargoRol(reporte.getUsuario() != null ? reporte.getUsuario().getCargoRol() : null)
                 .build();
     }
 }

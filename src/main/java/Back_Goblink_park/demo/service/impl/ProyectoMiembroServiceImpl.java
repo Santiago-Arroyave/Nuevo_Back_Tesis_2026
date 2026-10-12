@@ -23,7 +23,6 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
 
     private final ProyectoMiembroRepository miembroRepository;
@@ -31,6 +30,7 @@ public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
     private final UsuarioRepository usuarioRepository;
 
     @Override
+    @Transactional
     public ProyectoMiembroResponse agregarMiembro(ProyectoMiembroRequest request) {
         Proyecto proyecto = proyectoRepository.findById(request.getProyectoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
@@ -59,6 +59,7 @@ public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProyectoMiembroResponse> listarMiembrosProyecto(Long proyectoId) {
         return miembroRepository.findByProyectoId(proyectoId)
                 .stream()
@@ -67,6 +68,7 @@ public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProyectoMiembroResponse> listarProyectosUsuario(Long usuarioId) {
         return miembroRepository.findByUsuarioId(usuarioId)
                 .stream()
@@ -75,6 +77,7 @@ public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProyectoMiembroResponse obtenerMiembro(Long id) {
         ProyectoMiembro miembro = miembroRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Miembro no encontrado"));
@@ -82,6 +85,7 @@ public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
     }
 
     @Override
+    @Transactional
     public void eliminarMiembro(Long id) {
         ProyectoMiembro miembro = miembroRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Miembro no encontrado"));
@@ -92,6 +96,7 @@ public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ProyectoMiembroResponse> listarMiembrosProyectoPaginado(Long proyectoId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
         return miembroRepository.findByProyectoId(proyectoId, pageable)
@@ -99,6 +104,7 @@ public class ProyectoMiembroServiceImpl implements ProyectoMiembroService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<ProyectoMiembroResponse> listarProyectosUsuarioPaginado(Long usuarioId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size);
         return miembroRepository.findByUsuarioId(usuarioId, pageable)

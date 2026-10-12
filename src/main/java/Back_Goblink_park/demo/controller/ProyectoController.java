@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/proyectos")
 @RequiredArgsConstructor
@@ -187,10 +189,36 @@ public class ProyectoController {
     public ResponseEntity<List<ProyectoResponse>> listarMisProyectos(
             Authentication authentication
     ) {
+        long start = System.currentTimeMillis();
         String correoUsuario = authentication.getName();
-        return ResponseEntity.ok(
-                proyectoService.listarMisProyectos(correoUsuario)
-        );
+        log.info("[ProyectoController] GET /api/proyectos/mis-proyectos - Petición recibida para usuario: {}", correoUsuario);
+
+        List<ProyectoResponse> response = proyectoService.listarMisProyectos(correoUsuario);
+
+        log.info("[ProyectoController] GET /api/proyectos/mis-proyectos - Respondido en {} ms (elementos={})",
+                (System.currentTimeMillis() - start), response.size());
+        return ResponseEntity.ok(response);
+    }
+
+    // =====================================================
+    // PROYECTOS POR ID DE USUARIO (MÓVIL / EXPLORACIÓN)
+    // =====================================================
+
+    @GetMapping("/usuario/{usuarioId}")
+    public ResponseEntity<List<ProyectoResponse>> listarProyectosPorUsuario(
+            @PathVariable Long usuarioId,
+            @RequestParam(required = false, defaultValue = "false") boolean soloCreados
+    ) {
+        long start = System.currentTimeMillis();
+        log.info("[ProyectoController] GET /api/proyectos/usuario/{} - Petición recibida (soloCreados={})", usuarioId, soloCreados);
+
+        List<ProyectoResponse> response = soloCreados
+                ? proyectoService.listarPorUsuario(usuarioId)
+                : proyectoService.listarProyectosDondeParticipaUsuario(usuarioId);
+
+        log.info("[ProyectoController] GET /api/proyectos/usuario/{} - Respondido en {} ms (elementos={})",
+                usuarioId, (System.currentTimeMillis() - start), response.size());
+        return ResponseEntity.ok(response);
     }
 
     // =====================================================
@@ -202,10 +230,15 @@ public class ProyectoController {
             @RequestParam(required = false) String categoria,
             Authentication authentication
     ) {
+        long start = System.currentTimeMillis();
         String correoUsuario = authentication != null ? authentication.getName() : null;
-        return ResponseEntity.ok(
-                proyectoService.explorarProyectos(correoUsuario, categoria)
-        );
+        log.info("[ProyectoController] GET /api/proyectos/explorar - Petición recibida para: {}, categoria: {}", correoUsuario, categoria);
+
+        List<ProyectoResponse> response = proyectoService.explorarProyectos(correoUsuario, categoria);
+
+        log.info("[ProyectoController] GET /api/proyectos/explorar - Respondido en {} ms (elementos={})",
+                (System.currentTimeMillis() - start), response.size());
+        return ResponseEntity.ok(response);
     }
 
     // =====================================================
@@ -214,15 +247,19 @@ public class ProyectoController {
 
     @GetMapping("/todos")
     public ResponseEntity<List<ProyectoResponse>> listarTodosLosProyectos() {
+        long start = System.currentTimeMillis();
+        log.info("[ProyectoController] GET /api/proyectos/todos - Petición recibida");
 
-        return ResponseEntity.ok(
-                proyectoService.listarProyectos()
-        );
+        List<ProyectoResponse> response = proyectoService.listarProyectos();
+
+        log.info("[ProyectoController] GET /api/proyectos/todos - Respondido en {} ms (elementos={})",
+                (System.currentTimeMillis() - start), response.size());
+        return ResponseEntity.ok(response);
     }
 
-// =====================================================
-// LISTAR PROYECTOS CON FILTROS Y PAGINACIÓN
-// =====================================================
+    // =====================================================
+    // LISTAR PROYECTOS CON FILTROS Y PAGINACIÓN
+    // =====================================================
 
     @GetMapping
     public ResponseEntity<Page<ProyectoResponse>> listarProyectos(
@@ -242,17 +279,20 @@ public class ProyectoController {
             @RequestParam(defaultValue = "10")
             int size
     ) {
+        long start = System.currentTimeMillis();
+        log.info("[ProyectoController] GET /api/proyectos - Petición recibida (page={}, size={}, search={})", page, size, search);
 
-        return ResponseEntity.ok(
-
-                proyectoService.listarProyectosPaginados(
-                        search,
-                        estadoProyectoId,
-                        prioridadId,
-                        page,
-                        size
-                )
+        Page<ProyectoResponse> response = proyectoService.listarProyectosPaginados(
+                search,
+                estadoProyectoId,
+                prioridadId,
+                page,
+                size
         );
+
+        log.info("[ProyectoController] GET /api/proyectos - Respondido en {} ms (totalElementos={}, pagina={})",
+                (System.currentTimeMillis() - start), response.getTotalElements(), response.getNumber());
+        return ResponseEntity.ok(response);
     }
 
     // =====================================================
@@ -263,10 +303,14 @@ public class ProyectoController {
     public ResponseEntity<ProyectoDetalleResponse> obtenerDetalleCompleto(
             @PathVariable Long id
     ) {
+        long start = System.currentTimeMillis();
+        log.info("[ProyectoController] GET /api/proyectos/{}/detalle-completo - Petición recibida", id);
 
-        return ResponseEntity.ok(
-                proyectoService.obtenerDetalleCompleto(id)
-        );
+        ProyectoDetalleResponse response = proyectoService.obtenerDetalleCompleto(id);
+
+        log.info("[ProyectoController] GET /api/proyectos/{}/detalle-completo - Respondido en {} ms",
+                id, (System.currentTimeMillis() - start));
+        return ResponseEntity.ok(response);
     }
 
     // =====================================================
@@ -378,26 +422,6 @@ public class ProyectoController {
 
                 proyectoService.listarPorCategoria(
                         categoriaId
-                )
-        );
-    }
-
-    // =====================================================
-    // FILTRAR USUARIO
-    // =====================================================
-
-    @GetMapping("/usuario/{usuarioId}")
-    public ResponseEntity<List<ProyectoResponse>>
-    listarPorUsuario(
-
-            @PathVariable
-            Long usuarioId
-    ) {
-
-        return ResponseEntity.ok(
-
-                proyectoService.listarPorUsuario(
-                        usuarioId
                 )
         );
     }

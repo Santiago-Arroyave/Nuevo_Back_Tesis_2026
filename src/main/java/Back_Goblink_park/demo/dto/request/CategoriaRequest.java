@@ -1,5 +1,6 @@
 package Back_Goblink_park.demo.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -21,9 +22,13 @@ public class CategoriaRequest {
 
     private Boolean estado;
 
-    // No necesitas validaciones aquí, es opcional
+    // Archivo binario (para peticiones multipart/form-data)
     private MultipartFile imagen;
-    // ✅ AGREGAR ESTO:
+
+    // Color temático (#HEX)
     private String color;
 
+    // URL pública generada desde Supabase Storage (para peticiones JSON)
+    @JsonAlias({"imagen_url", "imagenUrl"})
+    private String imagenUrl;
 }

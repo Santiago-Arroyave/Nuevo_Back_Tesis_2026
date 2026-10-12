@@ -85,6 +85,10 @@ public interface ProyectoService {
             Long usuarioId
     );
 
+    List<ProyectoResponse> listarProyectosDondeParticipaUsuario(
+            Long usuarioId
+    );
+
     // =====================================================
     // BUSCAR POR NOMBRE
     // =====================================================

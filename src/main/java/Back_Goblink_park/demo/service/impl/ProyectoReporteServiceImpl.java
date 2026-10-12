@@ -21,6 +21,7 @@ import Back_Goblink_park.demo.service.interfaces.ProyectoReporteService;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -44,6 +45,7 @@ public class ProyectoReporteServiceImpl
     // =====================================================
 
     @Override
+    @Transactional
     public ProyectoReporteResponse asociarReporte(
             ProyectoReporteRequest request
     ) {
@@ -129,6 +131,7 @@ public class ProyectoReporteServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProyectoReporteResponse>
     listarReportesProyecto(
             Long proyectoId
@@ -152,6 +155,7 @@ public class ProyectoReporteServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProyectoReporteResponse>
     listarProyectosReporte(
             Long reporteId
@@ -175,6 +179,7 @@ public class ProyectoReporteServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public ProyectoReporteResponse obtenerRelacion(
             Long id
     ) {
@@ -198,6 +203,7 @@ public class ProyectoReporteServiceImpl
     // =====================================================
 
     @Override
+    @Transactional
     public void eliminarRelacion(
             Long id
     ) {

@@ -86,12 +86,12 @@ public interface ReporteRepository
     Long countByPrioridadIdAndEliminadoFalse(long l);
 
 
-    // ✅ MÉTODO NUEVO: Cargar reporte CON evidencias (JOIN FETCH)
-    @Query("SELECT r FROM Reporte r LEFT JOIN FETCH r.evidencias WHERE r.id = :id")
+    // ✅ MÉTODO NUEVO: Cargar reporte CON evidencias y usuario (JOIN FETCH)
+    @Query("SELECT r FROM Reporte r LEFT JOIN FETCH r.evidencias LEFT JOIN FETCH r.usuario WHERE r.id = :id")
     Optional<Reporte> findByIdWithEvidencias(@Param("id") Long id);
 
-    // ✅ MÉTODO NUEVO: Listar reportes CON evidencias
-    @Query("SELECT r FROM Reporte r LEFT JOIN FETCH r.evidencias WHERE r.eliminado = false")
+    // ✅ MÉTODO NUEVO: Listar reportes CON evidencias y usuario
+    @Query("SELECT r FROM Reporte r LEFT JOIN FETCH r.evidencias LEFT JOIN FETCH r.usuario WHERE r.eliminado = false")
     List<Reporte> findAllWithEvidencias();
 }
 

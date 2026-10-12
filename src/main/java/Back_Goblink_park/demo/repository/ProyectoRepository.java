@@ -4,6 +4,8 @@ import Back_Goblink_park.demo.entity.Proyecto;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -18,16 +20,50 @@ public interface ProyectoRepository
     List<Proyecto> findByEstadoTrue();
 
     // =====================================================
-    // ACTIVOS Y NO ELIMINADOS
+    // ACTIVOS Y NO ELIMINADOS (OPTIMIZADO CON JOIN FETCH)
     // =====================================================
 
+    @Query("SELECT DISTINCT p FROM Proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.creadoPor " +
+           "WHERE p.estado = true AND p.eliminado = false")
     List<Proyecto> findByEstadoTrueAndEliminadoFalse();
 
     // =====================================================
-    // NO ELIMINADOS
+    // NO ELIMINADOS (OPTIMIZADO CON JOIN FETCH)
     // =====================================================
 
+    @Query("SELECT DISTINCT p FROM Proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.creadoPor " +
+           "WHERE p.eliminado = false")
     List<Proyecto> findByEliminadoFalse();
+
+    // =====================================================
+    // PROYECTOS POR MIEMBRO ACTIVO (OPTIMIZADO CON JOIN FETCH)
+    // =====================================================
+
+    @Query("SELECT DISTINCT p FROM ProyectoMiembro pm " +
+           "JOIN pm.proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.creadoPor " +
+           "WHERE pm.usuario.id = :usuarioId AND pm.estado = true AND p.eliminado = false")
+    List<Proyecto> findProyectosByUsuarioId(@Param("usuarioId") Long usuarioId);
+
+    // =====================================================
+    // CONTEO MASIVO DE PARTICIPANTES POR PROYECTO
+    // =====================================================
+
+    @Query("SELECT pm.proyecto.id, COUNT(pm.id) FROM ProyectoMiembro pm " +
+           "WHERE pm.proyecto.id IN :proyectoIds AND pm.estado = true " +
+           "GROUP BY pm.proyecto.id")
+    List<Object[]> countParticipantesPorProyectos(@Param("proyectoIds") List<Long> proyectoIds);
 
     // =====================================================
     // POR ESTADO PROYECTO
@@ -54,11 +90,17 @@ public interface ProyectoRepository
     );
 
     // =====================================================
-    // POR USUARIO CREADOR
+    // POR USUARIO CREADOR (OPTIMIZADO CON JOIN FETCH)
     // =====================================================
 
+    @Query("SELECT DISTINCT p FROM Proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "LEFT JOIN FETCH p.creadoPor " +
+           "WHERE p.creadoPor.id = :usuarioId AND p.eliminado = false")
     List<Proyecto> findByCreadoPorId(
-            Long usuarioId
+            @Param("usuarioId") Long usuarioId
     );
 
     // =====================================================

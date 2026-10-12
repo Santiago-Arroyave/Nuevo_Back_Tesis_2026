@@ -2,6 +2,8 @@ package Back_Goblink_park.demo.repository;
 
 import Back_Goblink_park.demo.entity.CronogramaActividadProyecto;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -9,21 +11,46 @@ public interface CronogramaActividadProyectoRepository
         extends JpaRepository<CronogramaActividadProyecto, Long> {
 
     // =====================================================
-    // LISTAR POR PROYECTO
+    // LISTAR TODAS (OPTIMIZADO CON JOIN FETCH)
     // =====================================================
 
+    @Override
+    @Query("SELECT DISTINCT a FROM CronogramaActividadProyecto a " +
+           "LEFT JOIN FETCH a.proyecto p " +
+           "LEFT JOIN FETCH a.proyectoMiembro pm " +
+           "LEFT JOIN FETCH pm.usuario u " +
+           "LEFT JOIN FETCH a.evidencias e")
+    List<CronogramaActividadProyecto> findAll();
+
+    // =====================================================
+    // LISTAR POR PROYECTO (OPTIMIZADO CON JOIN FETCH)
+    // =====================================================
+
+    @Query("SELECT DISTINCT a FROM CronogramaActividadProyecto a " +
+           "LEFT JOIN FETCH a.proyecto p " +
+           "LEFT JOIN FETCH a.proyectoMiembro pm " +
+           "LEFT JOIN FETCH pm.usuario u " +
+           "LEFT JOIN FETCH a.evidencias e " +
+           "WHERE a.proyecto.id = :proyectoId " +
+           "ORDER BY a.fechaInicio ASC")
     List<CronogramaActividadProyecto>
     findByProyectoIdOrderByFechaInicioAsc(
-            Long proyectoId
+            @Param("proyectoId") Long proyectoId
     );
 
     // =====================================================
-    // LISTAR POR MIEMBRO DEL PROYECTO (ANTES RESPONSABLE)
+    // LISTAR POR MIEMBRO DEL PROYECTO (OPTIMIZADO CON JOIN FETCH)
     // =====================================================
 
+    @Query("SELECT DISTINCT a FROM CronogramaActividadProyecto a " +
+           "LEFT JOIN FETCH a.proyecto p " +
+           "LEFT JOIN FETCH a.proyectoMiembro pm " +
+           "LEFT JOIN FETCH pm.usuario u " +
+           "LEFT JOIN FETCH a.evidencias e " +
+           "WHERE a.proyectoMiembro.id = :proyectoMiembroId")
     List<CronogramaActividadProyecto>
     findByProyectoMiembroId(
-            Long proyectoMiembroId
+            @Param("proyectoMiembroId") Long proyectoMiembroId
     );
 
     // =====================================================

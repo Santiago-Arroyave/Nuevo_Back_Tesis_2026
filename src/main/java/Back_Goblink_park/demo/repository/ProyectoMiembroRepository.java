@@ -15,15 +15,43 @@ import java.util.Optional;
 public interface ProyectoMiembroRepository extends JpaRepository<ProyectoMiembro, Long> {
 
     // ==========================================
-    // 1. CONSULTAS BÁSICAS
+    // 1. CONSULTAS BÁSICAS (OPTIMIZADAS CON JOIN FETCH)
     // ==========================================
-    List<ProyectoMiembro> findByProyectoId(Long proyectoId);
+    @Query("SELECT pm FROM ProyectoMiembro pm " +
+           "JOIN FETCH pm.proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "JOIN FETCH pm.usuario u " +
+           "WHERE pm.proyecto.id = :proyectoId")
+    List<ProyectoMiembro> findByProyectoId(@Param("proyectoId") Long proyectoId);
 
-    List<ProyectoMiembro> findByProyectoIdAndEstadoTrue(Long proyectoId);
+    @Query("SELECT pm FROM ProyectoMiembro pm " +
+           "JOIN FETCH pm.proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "JOIN FETCH pm.usuario u " +
+           "WHERE pm.proyecto.id = :proyectoId AND pm.estado = true")
+    List<ProyectoMiembro> findByProyectoIdAndEstadoTrue(@Param("proyectoId") Long proyectoId);
 
-    List<ProyectoMiembro> findByUsuarioId(Long usuarioId);
+    @Query("SELECT pm FROM ProyectoMiembro pm " +
+           "JOIN FETCH pm.proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "JOIN FETCH pm.usuario u " +
+           "WHERE pm.usuario.id = :usuarioId")
+    List<ProyectoMiembro> findByUsuarioId(@Param("usuarioId") Long usuarioId);
 
-    List<ProyectoMiembro> findByUsuarioIdAndEstadoTrue(Long usuarioId);
+    @Query("SELECT pm FROM ProyectoMiembro pm " +
+           "JOIN FETCH pm.proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "JOIN FETCH pm.usuario u " +
+           "WHERE pm.usuario.id = :usuarioId AND pm.estado = true")
+    List<ProyectoMiembro> findByUsuarioIdAndEstadoTrue(@Param("usuarioId") Long usuarioId);
 
     Optional<ProyectoMiembro> findByProyectoIdAndUsuarioId(Long proyectoId, Long usuarioId);
 
@@ -44,11 +72,27 @@ public interface ProyectoMiembroRepository extends JpaRepository<ProyectoMiembro
     Long countByProyectoIdAndEstadoTrue(Long proyectoId);
 
     // ==========================================
-    // 3. PAGINACIÓN
+    // 3. PAGINACIÓN (OPTIMIZADA)
     // ==========================================
-    Page<ProyectoMiembro> findByProyectoId(Long proyectoId, Pageable pageable);
+    @Query(value = "SELECT pm FROM ProyectoMiembro pm " +
+           "JOIN FETCH pm.proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "JOIN FETCH pm.usuario u " +
+           "WHERE pm.proyecto.id = :proyectoId",
+           countQuery = "SELECT COUNT(pm) FROM ProyectoMiembro pm WHERE pm.proyecto.id = :proyectoId")
+    Page<ProyectoMiembro> findByProyectoId(@Param("proyectoId") Long proyectoId, Pageable pageable);
 
-    Page<ProyectoMiembro> findByUsuarioId(Long usuarioId, Pageable pageable);
+    @Query(value = "SELECT pm FROM ProyectoMiembro pm " +
+           "JOIN FETCH pm.proyecto p " +
+           "LEFT JOIN FETCH p.estadoProyecto " +
+           "LEFT JOIN FETCH p.prioridad " +
+           "LEFT JOIN FETCH p.categoria " +
+           "JOIN FETCH pm.usuario u " +
+           "WHERE pm.usuario.id = :usuarioId",
+           countQuery = "SELECT COUNT(pm) FROM ProyectoMiembro pm WHERE pm.usuario.id = :usuarioId")
+    Page<ProyectoMiembro> findByUsuarioId(@Param("usuarioId") Long usuarioId, Pageable pageable);
 
     // ==========================================
     // 4. CONSULTAS PERSONALIZADAS (JOIN FETCH)

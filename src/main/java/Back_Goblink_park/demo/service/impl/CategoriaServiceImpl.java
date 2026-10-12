@@ -35,9 +35,11 @@ public class CategoriaServiceImpl implements CategoriaService {
             throw new BusinessException("La categoría con ese nombre ya existe");
         }
 
-        String imagenUrl = null;
+        String finalImageUrl = null;
         if (imagen != null && !imagen.isEmpty()) {
-            imagenUrl = fileStorageService.uploadFile(imagen, "categorias");
+            finalImageUrl = fileStorageService.uploadFile(imagen, "categorias");
+        } else if (request.getImagenUrl() != null && !request.getImagenUrl().isBlank()) {
+            finalImageUrl = request.getImagenUrl().trim();
         }
 
         Categoria categoria = Categoria.builder()
@@ -45,7 +47,7 @@ public class CategoriaServiceImpl implements CategoriaService {
                 .descripcion(request.getDescripcion() != null ? request.getDescripcion().trim() : null)
                 .color(request.getColor())
                 .estado(request.getEstado() != null ? request.getEstado() : true)
-                .imagenUrl(imagenUrl)
+                .imagenUrl(finalImageUrl)
                 .imagenBase64(null)
                 .build();
 
@@ -80,8 +82,11 @@ public class CategoriaServiceImpl implements CategoriaService {
         }
 
         if (imagen != null && !imagen.isEmpty()) {
-            String imagenUrl = fileStorageService.uploadFile(imagen, "categorias");
-            categoria.setImagenUrl(imagenUrl);
+            String urlSubida = fileStorageService.uploadFile(imagen, "categorias");
+            categoria.setImagenUrl(urlSubida);
+            categoria.setImagenBase64(null);
+        } else if (request.getImagenUrl() != null && !request.getImagenUrl().isBlank()) {
+            categoria.setImagenUrl(request.getImagenUrl().trim());
             categoria.setImagenBase64(null);
         }
 
@@ -121,7 +126,6 @@ public class CategoriaServiceImpl implements CategoriaService {
         Categoria categoria = categoriaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada con ID: " + id));
 
-        categoria.setEstado(false);
-        categoriaRepository.save(categoria);
+        categoriaRepository.delete(categoria);
     }
 }

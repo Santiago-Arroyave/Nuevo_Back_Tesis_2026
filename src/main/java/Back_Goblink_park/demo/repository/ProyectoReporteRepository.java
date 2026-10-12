@@ -15,11 +15,19 @@ public interface ProyectoReporteRepository
         extends JpaRepository<ProyectoReporte, Long> {
 
     // =====================================================
-    // LISTAR REPORTES POR PROYECTO
+    // LISTAR REPORTES POR PROYECTO (OPTIMIZADO CON JOIN FETCH)
     // =====================================================
 
+    @Query("SELECT pr FROM ProyectoReporte pr " +
+           "JOIN FETCH pr.proyecto p " +
+           "JOIN FETCH pr.reporte r " +
+           "LEFT JOIN FETCH r.categoria " +
+           "LEFT JOIN FETCH r.estadoReporte " +
+           "LEFT JOIN FETCH r.prioridad " +
+           "LEFT JOIN FETCH r.usuario " +
+           "WHERE pr.proyecto.id = :proyectoId")
     List<ProyectoReporte> findByProyectoId(
-            Long proyectoId
+            @Param("proyectoId") Long proyectoId
     );
 
     // =====================================================

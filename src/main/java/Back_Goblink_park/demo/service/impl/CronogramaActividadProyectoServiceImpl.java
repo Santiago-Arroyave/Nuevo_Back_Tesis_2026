@@ -138,6 +138,7 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<CronogramaActividadProyectoResponse> listarActividades() {
         return actividadRepository.findAll().stream()
                 .map(CronogramaActividadProyectoMapper::toResponse)
@@ -149,6 +150,7 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public CronogramaActividadProyectoResponse obtenerActividad(Long id) {
         CronogramaActividadProyecto actividad = actividadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
@@ -160,6 +162,7 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<CronogramaActividadProyectoResponse> listarPorProyecto(Long proyectoId) {
         return actividadRepository.findByProyectoIdOrderByFechaInicioAsc(proyectoId).stream()
                 .map(CronogramaActividadProyectoMapper::toResponse)
@@ -171,6 +174,7 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<CronogramaActividadProyectoResponse> listarPorMiembro(Long proyectoMiembroId) {
         return actividadRepository.findByProyectoMiembroId(proyectoMiembroId).stream()
                 .map(CronogramaActividadProyectoMapper::toResponse)
@@ -182,6 +186,7 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<CronogramaActividadProyectoResponse> listarPorEstado(String estado) {
         return actividadRepository.findByEstado(estado).stream()
                 .map(CronogramaActividadProyectoMapper::toResponse)

@@ -12,6 +12,7 @@ import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.*;
 import Back_Goblink_park.demo.service.interfaces.FileStorageService;
 import Back_Goblink_park.demo.service.interfaces.ReporteService;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -147,7 +148,11 @@ public class ReporteServiceImpl implements ReporteService {
         reporteGuardado.setEvidencias(evidenciasCargadas);
 
         // ✅ 5️⃣ MAPEAR Y RETORNAR
-        return ReporteMapper.toResponse(reporteGuardado);
+        ReporteResponse dto = ReporteMapper.toResponse(reporteGuardado);
+        if (dto != null) {
+            dto.setCargoRol(reporteGuardado.getUsuario() != null ? reporteGuardado.getUsuario().getCargoRol() : null);
+        }
+        return dto;
     }
 
     // =====================================================
@@ -319,6 +324,14 @@ public class ReporteServiceImpl implements ReporteService {
             boolean soloGeolocalizados
     ) {
         return (root, query, criteriaBuilder) -> {
+            if (query != null && !Long.class.equals(query.getResultType()) && !long.class.equals(query.getResultType())) {
+                root.fetch("usuario", JoinType.LEFT);
+                root.fetch("categoria", JoinType.LEFT);
+                root.fetch("prioridad", JoinType.LEFT);
+                root.fetch("estadoReporte", JoinType.LEFT);
+                query.distinct(true);
+            }
+
             List<Predicate> predicates = new ArrayList<>();
 
             // Solo no eliminados

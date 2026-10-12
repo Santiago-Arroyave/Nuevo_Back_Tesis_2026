@@ -8,6 +8,7 @@ import Back_Goblink_park.demo.entity.*;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.*;
 import Back_Goblink_park.demo.service.interfaces.ProyectoService;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -137,6 +138,14 @@ public class ProyectoServiceImpl implements ProyectoService {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.by("fechaCreacion").descending());
 
         Specification<Proyecto> specification = (root, query, criteriaBuilder) -> {
+            if (query != null && !Long.class.equals(query.getResultType()) && !long.class.equals(query.getResultType())) {
+                root.fetch("estadoProyecto", JoinType.LEFT);
+                root.fetch("prioridad", JoinType.LEFT);
+                root.fetch("categoria", JoinType.LEFT);
+                root.fetch("creadoPor", JoinType.LEFT);
+                query.distinct(true);
+            }
+
             ArrayList<Predicate> predicates = new ArrayList<>();
             predicates.add(criteriaBuilder.isFalse(root.get("eliminado")));
 
@@ -604,7 +613,7 @@ public class ProyectoServiceImpl implements ProyectoService {
     }
 
     // =====================================================
-    // MÓDULO MÓVIL / EXPLORACIÓN
+    // MÓDULO MÓVIL / EXPLORACIÓN (OPTIMIZADO)
     // =====================================================
 
     @Override
@@ -614,19 +623,41 @@ public class ProyectoServiceImpl implements ProyectoService {
         Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
 
-        List<ProyectoMiembro> membresias = proyectoMiembroRepository.findByUsuarioIdAndEstadoTrue(usuario.getId());
+        return listarProyectosDondeParticipaUsuario(usuario.getId());
+    }
 
-        return membresias.stream()
-                .map(ProyectoMiembro::getProyecto)
-                .filter(p -> p != null && Boolean.FALSE.equals(p.getEliminado()))
-                .distinct()
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProyectoResponse> listarProyectosDondeParticipaUsuario(Long usuarioId) {
+        List<Proyecto> proyectos = proyectoRepository.findProyectosByUsuarioId(usuarioId);
+        if (proyectos == null || proyectos.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<Long> proyectoIds = proyectos.stream().map(Proyecto::getId).toList();
+        java.util.Map<Long, Integer> participantesMap = obtenerMapaParticipantes(proyectoIds);
+
+        return proyectos.stream()
                 .map(p -> {
                     ProyectoResponse dto = ProyectoMapper.toResponse(p);
-                    Long participantes = proyectoMiembroRepository.countByProyectoIdAndEstadoTrue(p.getId());
-                    dto.setCantidadParticipantes(participantes != null ? participantes.intValue() : 0);
+                    dto.setCantidadParticipantes(participantesMap.getOrDefault(p.getId(), 0));
                     return dto;
                 })
                 .toList();
+    }
+
+    private java.util.Map<Long, Integer> obtenerMapaParticipantes(List<Long> proyectoIds) {
+        if (proyectoIds == null || proyectoIds.isEmpty()) {
+            return java.util.Collections.emptyMap();
+        }
+        List<Object[]> counts = proyectoRepository.countParticipantesPorProyectos(proyectoIds);
+        java.util.Map<Long, Integer> map = new java.util.HashMap<>();
+        for (Object[] row : counts) {
+            Long projId = (Long) row[0];
+            Number count = (Number) row[1];
+            map.put(projId, count != null ? count.intValue() : 0);
+        }
+        return map;
     }
 
     @Override
@@ -655,7 +686,7 @@ public class ProyectoServiceImpl implements ProyectoService {
 
         List<Proyecto> proyectosActivos = proyectoRepository.findByEstadoTrueAndEliminadoFalse();
 
-        return proyectosActivos.stream()
+        List<Proyecto> proyectosFiltrados = proyectosActivos.stream()
                 .filter(p -> !proyectosExcluidos.contains(p.getId()))
                 .filter(p -> {
                     if (categoriaFiltro == null || categoriaFiltro.isBlank()) {
@@ -672,10 +703,15 @@ public class ProyectoServiceImpl implements ProyectoService {
                     }
                     return false;
                 })
+                .toList();
+
+        List<Long> ids = proyectosFiltrados.stream().map(Proyecto::getId).toList();
+        java.util.Map<Long, Integer> participantesMap = obtenerMapaParticipantes(ids);
+
+        return proyectosFiltrados.stream()
                 .map(p -> {
                     ProyectoResponse dto = ProyectoMapper.toResponse(p);
-                    Long participantes = proyectoMiembroRepository.countByProyectoIdAndEstadoTrue(p.getId());
-                    dto.setCantidadParticipantes(participantes != null ? participantes.intValue() : 0);
+                    dto.setCantidadParticipantes(participantesMap.getOrDefault(p.getId(), 0));
                     return dto;
                 })
                 .toList();

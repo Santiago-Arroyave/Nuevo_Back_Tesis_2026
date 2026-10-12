@@ -24,6 +24,8 @@ public class ReporteResponse {
     private String usuarioNombre;
     private String usuarioCorreo;
     private String usuarioUsername;
+    private String cargoRol;
+    private String usuarioCargoRol;
 
     // =====================================================
     // CATEGORÍA

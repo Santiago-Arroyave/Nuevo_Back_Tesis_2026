@@ -222,17 +222,16 @@ public class ReporteController {
     }
 
     // =====================================================
-    // ACTUALIZAR REPORTE COMPLETO - ADMIN O PROPIETARIO
-    // =====================================================
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
+// ACTUALIZAR REPORTE COMPLETO - ADMIN, COORDINADOR O PROPIETARIO
+// =====================================================
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'COORDINADOR', 'USER')")
     public ResponseEntity<ReporteResponse> actualizarReporte(
             @PathVariable Long id,
-            @Valid @RequestBody ReporteUpdateRequest request
+            @Valid @RequestBody ReporteUpdateRequest request,
+            Authentication authentication
     ) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String correoUsuario = auth.getName();
-
+        String correoUsuario = (authentication != null) ? authentication.getName() : null;
         ReporteResponse updated = reporteService.actualizarReporte(id, correoUsuario, request);
         return ResponseEntity.ok(updated);
     }

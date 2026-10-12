@@ -9,9 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import lombok.extern.slf4j.Slf4j;
+
 import jakarta.validation.Valid;
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/proyecto-miembros")
 @RequiredArgsConstructor
@@ -37,7 +40,12 @@ public class ProyectoMiembroController {
     public List<ProyectoMiembroResponse> listarMiembrosProyecto(
             @PathVariable Long proyectoId
     ) {
-        return miembroService.listarMiembrosProyecto(proyectoId);
+        long start = System.currentTimeMillis();
+        log.info("[ProyectoMiembroController] GET /api/proyecto-miembros/proyecto/{} - Petición recibida", proyectoId);
+        List<ProyectoMiembroResponse> response = miembroService.listarMiembrosProyecto(proyectoId);
+        log.info("[ProyectoMiembroController] GET /api/proyecto-miembros/proyecto/{} - Respondido en {} ms (elementos={})",
+                proyectoId, (System.currentTimeMillis() - start), response.size());
+        return response;
     }
 
     // =====================================================
@@ -61,7 +69,12 @@ public class ProyectoMiembroController {
     public List<ProyectoMiembroResponse> listarProyectosUsuario(
             @PathVariable Long usuarioId
     ) {
-        return miembroService.listarProyectosUsuario(usuarioId);
+        long start = System.currentTimeMillis();
+        log.info("[ProyectoMiembroController] GET /api/proyecto-miembros/usuario/{} - Petición recibida", usuarioId);
+        List<ProyectoMiembroResponse> response = miembroService.listarProyectosUsuario(usuarioId);
+        log.info("[ProyectoMiembroController] GET /api/proyecto-miembros/usuario/{} - Respondido en {} ms (elementos={})",
+                usuarioId, (System.currentTimeMillis() - start), response.size());
+        return response;
     }
 
     // =====================================================

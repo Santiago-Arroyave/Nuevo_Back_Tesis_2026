@@ -29,8 +29,7 @@ public class CategoriaController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<CategoriaResponse> crear(
-            @RequestParam @NotBlank(message = "El nombre es obligatorio")
-            @Size(max = 100, message = "El nombre no puede exceder 100 caracteres") String nombre,
+            @RequestParam @NotBlank(message = "El nombre es obligatorio") @Size(max = 100, message = "El nombre no puede exceder 100 caracteres") String nombre,
 
             @RequestParam(required = false) @Size(max = 500) String descripcion,
 
@@ -38,8 +37,7 @@ public class CategoriaController {
 
             @RequestParam(required = false) MultipartFile imagen,
 
-            @RequestParam(required = false) @Size(max = 7) String color
-    ) {
+            @RequestParam(required = false) @Size(max = 7) String color) {
         // Convertir string a boolean para el estado
         boolean estadoBool = "activo".equalsIgnoreCase(estado) || "true".equalsIgnoreCase(estado);
 
@@ -70,18 +68,20 @@ public class CategoriaController {
 
             @RequestParam(required = false) MultipartFile imagen,
 
-            @RequestParam(required = false) @Size(max = 7) String color
-    ) {
+            @RequestParam(required = false) @Size(max = 7) String color) {
         // Construir request solo con los campos que se enviaron
         CategoriaRequest.CategoriaRequestBuilder builder = CategoriaRequest.builder();
 
-        if (nombre != null) builder.nombre(nombre.trim());
-        if (descripcion != null) builder.descripcion(descripcion.trim());
+        if (nombre != null)
+            builder.nombre(nombre.trim());
+        if (descripcion != null)
+            builder.descripcion(descripcion.trim());
         if (estado != null) {
             boolean estadoBool = "activo".equalsIgnoreCase(estado) || "true".equalsIgnoreCase(estado);
             builder.estado(estadoBool);
         }
-        if (color != null) builder.color(color);
+        if (color != null)
+            builder.color(color);
 
         CategoriaRequest request = builder.build();
 
@@ -115,5 +115,22 @@ public class CategoriaController {
     public ResponseEntity<Void> eliminarCategoria(@PathVariable Long id) {
         categoriaService.eliminar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<CategoriaResponse> actualizarJson(
+            @PathVariable Long id,
+            @RequestBody @Valid CategoriaRequest request) {
+        CategoriaResponse response = categoriaService.actualizar(id, request, null);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<CategoriaResponse> crearJson(
+            @RequestBody @Valid CategoriaRequest request) {
+        CategoriaResponse response = categoriaService.crear(request, null);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
