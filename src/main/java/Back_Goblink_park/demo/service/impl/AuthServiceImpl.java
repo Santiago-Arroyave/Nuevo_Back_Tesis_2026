@@ -77,6 +77,7 @@ public class AuthServiceImpl implements AuthService {
     // LOGIN DE USUARIO
     // =====================================================
     @Override
+    @Transactional // 👈 1. Agregar @Transactional para asegurar la persistencia
     public AuthResponse login(LoginRequest request) {
         // 1. Normalizar correo antes de buscar
         String correoSanitizado = request.getCorreo().trim().toLowerCase();
@@ -100,12 +101,16 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Credenciales inválidas");
         }
 
-        // 4. Generar token JWT
-        String token = jwtService.generateToken(usuario.getCorreo());
+        // 4. 🕒 REGISTRAR ÚLTIMO ACCESO (👈 ESTO ES LO QUE FALTA)
+        usuario.setUltimoAcceso(LocalDateTime.now());
+        Usuario usuarioActualizado = usuarioRepository.save(usuario);
+
+        // 5. Generar token JWT
+        String token = jwtService.generateToken(usuarioActualizado.getCorreo());
 
         return AuthResponse.builder()
                 .token(token)
-                .usuario(UserMapper.toResponse(usuario))
+                .usuario(UserMapper.toResponse(usuarioActualizado))
                 .build();
     }
 

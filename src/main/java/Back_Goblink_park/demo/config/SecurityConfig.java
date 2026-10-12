@@ -59,94 +59,97 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // 🔓 RUTAS PÚBLICAS
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        // 🔒 MODIFICACIONES ADMINISTRATIVAS DIRECTAS
                         .requestMatchers(HttpMethod.PATCH, "/api/reportes/*/estado").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/reportes/*/prioridad").hasAuthority("ADMIN")
-
                         .requestMatchers("/api/roles/**").hasAuthority("ADMIN")
 
-                        // ✅ 1. PERFIL PROPIO: Permitir a cualquier usuario autenticado (GET y PUT) (DEBE IR ANTES DEL /**)
+                        // ✅ PERFIL PROPIO (GET Y PUT)
+                        .requestMatchers("/api/usuarios/perfil/**").authenticated()
                         .requestMatchers("/api/usuarios/perfil").authenticated()
 
-                        // ✅ 2. LISTAR USUARIOS: Permitir a ADMIN y USER (DEBE IR ANTES DEL /**)
-                        .requestMatchers(HttpMethod.GET, "/api/usuarios").hasAnyAuthority("ADMIN", "USER")
-
-                        // ✅ ESTADÍSTICAS DE USUARIO: Permitir a ADMIN y USER (DEBE IR ANTES DEL /**)
-                        .requestMatchers(HttpMethod.GET, "/api/usuarios/*/estadisticas").hasAnyAuthority("ADMIN", "USER")
-
-                        // ✅ 3. RESTO DE USUARIOS: Solo ADMIN (El /** captura el resto: POST, GET /{id}, PUT /{id}, DELETE, etc.)
+                        // ✅ USUARIOS: Listado y estadísticas para usuarios autenticados
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/*/estadisticas").authenticated()
                         .requestMatchers("/api/usuarios/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/categorias/**").hasAnyAuthority("ADMIN", "USER")
+                        // ✅ CATÁLOGOS BASE (Cualquier usuario autenticado puede consultarlos)
+                        .requestMatchers(HttpMethod.GET, "/api/categorias/**").authenticated()
                         .requestMatchers("/api/categorias/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/prioridades/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/prioridades/**").authenticated()
                         .requestMatchers("/api/prioridades/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/estados-reporte/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/estados-reporte/**").authenticated()
                         .requestMatchers("/api/estados-reporte/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/estados-proyecto/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/estados-proyecto/**").authenticated()
                         .requestMatchers("/api/estados-proyecto/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/reportes/**").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.POST, "/api/reportes/**").hasAnyAuthority("ADMIN", "USER")
+                        // 🚀 GESTIÓN DE REPORTES (CORREGIDO)
+                        .requestMatchers(HttpMethod.GET, "/api/reportes/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/reportes/**").authenticated()
+                        // 👉 PUT: Permitir a usuarios autenticados (el Service valida si es autor o ADMIN)
+                        .requestMatchers(HttpMethod.PUT, "/api/reportes/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/reportes/**").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/reportes/**").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/reportes/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/reportes/**").hasAnyAuthority("ADMIN", "USER")
 
-                        .requestMatchers(HttpMethod.GET, "/api/evidencias/**").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.POST, "/api/evidencias/**").hasAnyAuthority("ADMIN", "USER")
+                        // ✅ EVIDENCIAS Y COMENTARIOS
+                        .requestMatchers(HttpMethod.GET, "/api/evidencias/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/evidencias/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/evidencias/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/comentarios-reporte/**").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.POST, "/api/comentarios-reporte/**").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.PUT, "/api/comentarios-reporte/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/comentarios-reporte/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/comentarios-reporte/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/comentarios-reporte/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/comentarios-reporte/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/proyectos/*/detalle-completo").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.GET, "/api/proyectos/**").hasAnyAuthority("ADMIN", "USER")
+                        // ✅ PROYECTOS Y SEGUIMIENTO
+                        .requestMatchers(HttpMethod.GET, "/api/proyectos/*/detalle-completo").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/proyectos/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/proyectos/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/proyectos/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/proyectos/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/proyectos/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/proyecto-miembros/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/proyecto-miembros/**").authenticated()
                         .requestMatchers("/api/proyecto-miembros/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/proyecto-reportes/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/proyecto-reportes/**").authenticated()
                         .requestMatchers("/api/proyecto-reportes/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/responsables-proyecto/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/responsables-proyecto/**").authenticated()
                         .requestMatchers("/api/responsables-proyecto/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/seguimientos-proyecto/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/seguimientos-proyecto/**").authenticated()
                         .requestMatchers("/api/seguimientos-proyecto/**").hasAuthority("ADMIN")
 
-                        // ✅ SOLICITUDES DE PROYECTO: Usuarios pueden solicitar, ver sus solicitudes y cancelar las pendientes
-                        .requestMatchers(HttpMethod.POST, "/api/solicitudes-proyecto").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.GET, "/api/solicitudes-proyecto/mis-solicitudes").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/solicitudes-proyecto/**").hasAnyAuthority("ADMIN", "USER")
+                        // ✅ SOLICITUDES DE PROYECTO
+                        .requestMatchers(HttpMethod.POST, "/api/solicitudes-proyecto").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/solicitudes-proyecto/mis-solicitudes").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/solicitudes-proyecto/**").authenticated()
                         .requestMatchers("/api/solicitudes-proyecto/**").hasAuthority("ADMIN")
 
-                        // ✅ CRONOGRAMA DE ACTIVIDADES: Usuarios pueden consultar, completar y subir evidencias
-                        .requestMatchers(HttpMethod.GET, "/api/cronograma-actividades/**").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.POST, "/api/cronograma-actividades/*/evidencias").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/cronograma-actividades/*/completar").hasAnyAuthority("ADMIN", "USER")
+                        // ✅ CRONOGRAMA DE ACTIVIDADES
+                        .requestMatchers(HttpMethod.GET, "/api/cronograma-actividades/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/cronograma-actividades/*/evidencias").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/cronograma-actividades/*/completar").authenticated()
                         .requestMatchers("/api/cronograma-actividades/**").hasAuthority("ADMIN")
 
-                        // ✅ EVIDENCIAS DE ACTIVIDAD: Usuarios pueden eliminar sus propias evidencias
-                        .requestMatchers(HttpMethod.DELETE, "/api/evidencias-actividad/**").hasAnyAuthority("ADMIN", "USER")
-                        .requestMatchers("/api/evidencias-actividad/**").hasAnyAuthority("ADMIN", "USER")
+                        // ✅ EVIDENCIAS DE ACTIVIDAD
+                        .requestMatchers(HttpMethod.DELETE, "/api/evidencias-actividad/**").authenticated()
+                        .requestMatchers("/api/evidencias-actividad/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/proyecto-objetivos/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/proyecto-objetivos/**").authenticated()
                         .requestMatchers("/api/proyecto-objetivos/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/proyecto-metas/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/proyecto-metas/**").authenticated()
                         .requestMatchers("/api/proyecto-metas/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/proyecto-presupuestos/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/proyecto-presupuestos/**").authenticated()
                         .requestMatchers("/api/proyecto-presupuestos/**").hasAuthority("ADMIN")
 
                         .anyRequest().authenticated()
