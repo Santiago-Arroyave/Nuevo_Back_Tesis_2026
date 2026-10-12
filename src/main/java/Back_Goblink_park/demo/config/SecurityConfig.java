@@ -124,8 +124,21 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/seguimientos-proyecto/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/seguimientos-proyecto/**").hasAuthority("ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/cronograma-actividades/*/completar").hasAnyAuthority("ADMIN", "USER")
+                        // ✅ SOLICITUDES DE PROYECTO: Usuarios pueden solicitar, ver sus solicitudes y cancelar las pendientes
+                        .requestMatchers(HttpMethod.POST, "/api/solicitudes-proyecto").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.GET, "/api/solicitudes-proyecto/mis-solicitudes").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/solicitudes-proyecto/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers("/api/solicitudes-proyecto/**").hasAuthority("ADMIN")
+
+                        // ✅ CRONOGRAMA DE ACTIVIDADES: Usuarios pueden consultar, completar y subir evidencias
+                        .requestMatchers(HttpMethod.GET, "/api/cronograma-actividades/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.POST, "/api/cronograma-actividades/*/evidencias").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(HttpMethod.PATCH, "/api/cronograma-actividades/*/completar").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/cronograma-actividades/**").hasAuthority("ADMIN")
+
+                        // ✅ EVIDENCIAS DE ACTIVIDAD: Usuarios pueden eliminar sus propias evidencias
+                        .requestMatchers(HttpMethod.DELETE, "/api/evidencias-actividad/**").hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers("/api/evidencias-actividad/**").hasAnyAuthority("ADMIN", "USER")
 
                         .requestMatchers(HttpMethod.GET, "/api/proyecto-objetivos/**").hasAnyAuthority("ADMIN", "USER")
                         .requestMatchers("/api/proyecto-objetivos/**").hasAuthority("ADMIN")

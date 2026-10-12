@@ -194,4 +194,30 @@ public class SolicitudProyectoServiceImpl implements SolicitudProyectoService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public void cancelarSolicitud(Long id, String correoUsuario) {
+        log.info("Cancelando solicitud ID: {} por usuario: {}", id, correoUsuario);
+        String correoSanitizado = (correoUsuario != null) ? correoUsuario.trim().toLowerCase() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
+
+        SolicitudProyecto solicitud = solicitudRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Solicitud no encontrada con ID: " + id));
+
+        boolean esPropietario = solicitud.getUsuario() != null && solicitud.getUsuario().getId().equals(usuario.getId());
+        boolean esAdmin = usuario.getRol() != null && "ADMIN".equalsIgnoreCase(usuario.getRol().getNombre());
+
+        if (!esPropietario && !esAdmin) {
+            throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para cancelar esta solicitud");
+        }
+
+        if (!"pendiente".equalsIgnoreCase(solicitud.getEstado())) {
+            throw new IllegalStateException("Solo se pueden cancelar solicitudes en estado pendiente. Estado actual: " + solicitud.getEstado());
+        }
+
+        solicitudRepository.delete(solicitud);
+        log.info("Solicitud ID: {} cancelada exitosamente", id);
+    }
+
 }

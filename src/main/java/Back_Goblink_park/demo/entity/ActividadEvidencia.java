@@ -22,6 +22,10 @@ public class ActividadEvidencia {
     @JoinColumn(name = "id_actividad", nullable = false)
     private CronogramaActividadProyecto actividad;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario")
+    private Usuario usuario;
+
     @Column(name = "url_archivo", length = 1000)
     private String urlArchivo;
 

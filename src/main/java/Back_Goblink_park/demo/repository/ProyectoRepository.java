@@ -18,6 +18,12 @@ public interface ProyectoRepository
     List<Proyecto> findByEstadoTrue();
 
     // =====================================================
+    // ACTIVOS Y NO ELIMINADOS
+    // =====================================================
+
+    List<Proyecto> findByEstadoTrueAndEliminadoFalse();
+
+    // =====================================================
     // NO ELIMINADOS
     // =====================================================
 

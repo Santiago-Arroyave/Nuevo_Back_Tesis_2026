@@ -23,6 +23,8 @@ public interface ProyectoMiembroRepository extends JpaRepository<ProyectoMiembro
 
     List<ProyectoMiembro> findByUsuarioId(Long usuarioId);
 
+    List<ProyectoMiembro> findByUsuarioIdAndEstadoTrue(Long usuarioId);
+
     Optional<ProyectoMiembro> findByProyectoIdAndUsuarioId(Long proyectoId, Long usuarioId);
 
     // ==========================================

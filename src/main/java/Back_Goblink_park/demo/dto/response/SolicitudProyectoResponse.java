@@ -12,6 +12,11 @@ public class SolicitudProyectoResponse {
 
     private Long id;
 
+    // Alias para compatibilidad con clientes móviles
+    public Long getIdSolicitud() {
+        return this.id;
+    }
+
     // Usuario solicitante
     private Long usuarioId;
     private String usuarioNombre;
@@ -20,6 +25,7 @@ public class SolicitudProyectoResponse {
     // Proyecto
     private Long proyectoId;
     private String proyectoNombre;
+    private ProyectoResponse proyecto;
 
     // Estado
     private String estado;

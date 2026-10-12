@@ -26,4 +26,6 @@ public interface SolicitudProyectoService {
 
     SolicitudProyectoResponse rechazarSolicitud(Long id, SolicitudResponderRequest request, String correoUsuario);
     List<SolicitudProyectoResponse> listarSolicitudesPorUsuario(String correo);
+
+    void cancelarSolicitud(Long id, String correoUsuario);
 }

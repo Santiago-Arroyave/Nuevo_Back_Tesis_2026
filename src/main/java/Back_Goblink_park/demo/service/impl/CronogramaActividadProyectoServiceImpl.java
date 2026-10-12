@@ -1,18 +1,22 @@
 package Back_Goblink_park.demo.service.impl;
 
+import Back_Goblink_park.demo.dto.mapper.ActividadEvidenciaMapper;
 import Back_Goblink_park.demo.dto.mapper.CronogramaActividadProyectoMapper;
 import Back_Goblink_park.demo.dto.request.CronogramaActividadCompletarRequest;
 import Back_Goblink_park.demo.dto.request.CronogramaActividadProyectoRequest;
+import Back_Goblink_park.demo.dto.response.ActividadEvidenciaResponse;
 import Back_Goblink_park.demo.dto.response.CronogramaActividadProyectoResponse;
 import Back_Goblink_park.demo.entity.ActividadEvidencia;
 import Back_Goblink_park.demo.entity.CronogramaActividadProyecto;
 import Back_Goblink_park.demo.entity.Proyecto;
 import Back_Goblink_park.demo.entity.ProyectoMiembro;
+import Back_Goblink_park.demo.entity.Usuario;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.ActividadEvidenciaRepository;
 import Back_Goblink_park.demo.repository.CronogramaActividadProyectoRepository;
 import Back_Goblink_park.demo.repository.ProyectoMiembroRepository;
 import Back_Goblink_park.demo.repository.ProyectoRepository;
+import Back_Goblink_park.demo.repository.UsuarioRepository;
 import Back_Goblink_park.demo.service.interfaces.CronogramaActividadProyectoService;
 
 import lombok.RequiredArgsConstructor;
@@ -39,6 +43,7 @@ public class CronogramaActividadProyectoServiceImpl
     private final ProyectoRepository proyectoRepository;
     private final ProyectoMiembroRepository proyectoMiembroRepository;
     private final ActividadEvidenciaRepository actividadEvidenciaRepository;
+    private final UsuarioRepository usuarioRepository;
     private final Back_Goblink_park.demo.service.interfaces.FileStorageService fileStorageService;
 
     // =====================================================
@@ -372,5 +377,113 @@ public class CronogramaActividadProyectoServiceImpl
         proyectoRepository.save(proyecto);
 
         return porcentaje;
+    }
+
+    // =====================================================
+    // LISTADO CRONOLÓGICO Y EVIDENCIAS
+    // =====================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CronogramaActividadProyectoResponse> listarActividadesPorProyectoCronologico(Long proyectoId) {
+        List<CronogramaActividadProyecto> actividades = actividadRepository
+                .findByProyectoIdOrderByFechaInicioAsc(proyectoId);
+
+        List<CronogramaActividadProyectoResponse> responses = new java.util.ArrayList<>();
+        for (int i = 0; i < actividades.size(); i++) {
+            CronogramaActividadProyecto a = actividades.get(i);
+            CronogramaActividadProyectoResponse resp = CronogramaActividadProyectoMapper.toResponse(a);
+            resp.setNumero(i + 1);
+            responses.add(resp);
+        }
+        return responses;
+    }
+
+    @Override
+    @Transactional
+    public ActividadEvidenciaResponse subirEvidencia(
+            Long idActividad,
+            MultipartFile file,
+            String descripcion,
+            String correoUsuario) {
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("El archivo de evidencia es obligatorio");
+        }
+
+        CronogramaActividadProyecto actividad = actividadRepository.findById(idActividad)
+                .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada con ID: " + idActividad));
+
+        Usuario usuario = null;
+        if (correoUsuario != null && !correoUsuario.isBlank()) {
+            String correoSanitizado = correoUsuario.trim().toLowerCase();
+            usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado).orElse(null);
+        }
+
+        String url = fileStorageService.uploadFile(file, "actividades");
+
+        boolean esPrimera = actividad.getEvidencias() == null || actividad.getEvidencias().isEmpty();
+
+        ActividadEvidencia evidencia = ActividadEvidencia.builder()
+                .actividad(actividad)
+                .usuario(usuario)
+                .urlArchivo(url)
+                .tipoImagen(file.getContentType())
+                .nombreArchivo(file.getOriginalFilename())
+                .tamanoArchivo(file.getSize())
+                .mimeType(file.getContentType())
+                .descripcion(descripcion != null ? descripcion.trim() : null)
+                .esPrincipal(esPrimera)
+                .build();
+
+        ActividadEvidencia guardada = actividadEvidenciaRepository.save(evidencia);
+        if (actividad.getEvidencias() != null) {
+            actividad.getEvidencias().add(guardada);
+        }
+
+        if (actividad.getUrlEvidencia() == null || actividad.getUrlEvidencia().isBlank()) {
+            actividad.setUrlEvidencia(url);
+            actividadRepository.save(actividad);
+        }
+
+        return ActividadEvidenciaMapper.toResponse(guardada);
+    }
+
+    @Override
+    @Transactional
+    public void eliminarEvidenciaActividad(Long evidenciaId, String correoUsuario) {
+        ActividadEvidencia evidencia = actividadEvidenciaRepository.findById(evidenciaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Evidencia de actividad no encontrada con ID: " + evidenciaId));
+
+        if (correoUsuario != null && !correoUsuario.isBlank()) {
+            String correoSanitizado = correoUsuario.trim().toLowerCase();
+            Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
+
+            boolean esAdmin = usuario.getRol() != null && "ADMIN".equalsIgnoreCase(usuario.getRol().getNombre());
+            boolean esPropietario = evidencia.getUsuario() != null && evidencia.getUsuario().getId().equals(usuario.getId());
+            boolean esResponsable = evidencia.getActividad() != null
+                    && evidencia.getActividad().getProyectoMiembro() != null
+                    && evidencia.getActividad().getProyectoMiembro().getUsuario() != null
+                    && evidencia.getActividad().getProyectoMiembro().getUsuario().getId().equals(usuario.getId());
+
+            if (!esAdmin && !esPropietario && !esResponsable) {
+                throw new org.springframework.security.access.AccessDeniedException("No tienes permisos para eliminar esta evidencia");
+            }
+        }
+
+        // Borrar de Supabase Storage
+        if (evidencia.getUrlArchivo() != null && !evidencia.getUrlArchivo().isBlank()) {
+            fileStorageService.deleteFile(evidencia.getUrlArchivo());
+        }
+
+        // Si era la URL principal de la actividad, limpiar
+        CronogramaActividadProyecto actividad = evidencia.getActividad();
+        if (actividad != null && evidencia.getUrlArchivo() != null && evidencia.getUrlArchivo().equals(actividad.getUrlEvidencia())) {
+            actividad.setUrlEvidencia(null);
+            actividadRepository.save(actividad);
+        }
+
+        actividadEvidenciaRepository.delete(evidencia);
     }
 }

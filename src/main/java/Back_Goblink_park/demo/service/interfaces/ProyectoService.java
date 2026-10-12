@@ -143,4 +143,14 @@ public interface ProyectoService {
     // Método para cambiar el estado del proyecto (Planificación, En ejecución, etc.)
     ProyectoResponse actualizarEstadoProyecto(Long id, Long estadoProyectoId);
 
+    // =====================================================
+    // MÓDULO MÓVIL / EXPLORACIÓN
+    // =====================================================
+
+    List<ProyectoResponse> listarMisProyectos(String correoUsuario);
+
+    List<ProyectoResponse> explorarProyectos(String correoUsuario, String categoria);
+
+    ProyectoDetalleResponse obtenerResumenCompleto(Long proyectoId);
+
 }

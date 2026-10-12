@@ -85,6 +85,8 @@ public class ProyectoResponse {
 
     private Double porcentajeAvance;
 
+    private Integer cantidadParticipantes;
+
     private Boolean estado;
 
     private Boolean eliminado;

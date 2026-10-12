@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +45,7 @@ public class ProyectoServiceImpl implements ProyectoService {
     private final ProyectoPresupuestoRepository proyectoPresupuestoRepository;
     private final CronogramaActividadProyectoRepository cronogramaActividadProyectoRepository;
     private final SeguimientoProyectoRepository seguimientoProyectoRepository;
+    private final SolicitudProyectoRepository solicitudProyectoRepository;
 
 
     // =====================================================
@@ -172,8 +175,12 @@ public class ProyectoServiceImpl implements ProyectoService {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
 
+        ProyectoResponse proyectoResponse = ProyectoMapper.toResponse(proyecto);
+        Long countMiembros = proyectoMiembroRepository.countByProyectoIdAndEstadoTrue(proyectoId);
+        proyectoResponse.setCantidadParticipantes(countMiembros != null ? countMiembros.intValue() : 0);
+
         return ProyectoDetalleResponse.builder()
-                .proyecto(ProyectoMapper.toResponse(proyecto))
+                .proyecto(proyectoResponse)
                 .reportesAsociados(proyectoReporteRepository.findByProyectoId(proyectoId).stream().map(ProyectoReporteMapper::toResponse).toList())
                 .miembros(proyectoMiembroRepository.findByProyectoId(proyectoId).stream().map(ProyectoMiembroMapper::toResponse).toList())
                 .objetivos(proyectoObjetivoRepository.findByProyectoId(proyectoId).stream().map(ProyectoObjetivoMapper::toResponse).toList())
@@ -594,5 +601,89 @@ public class ProyectoServiceImpl implements ProyectoService {
         Proyecto actualizado = proyectoRepository.save(proyecto);
 
         return ProyectoMapper.toResponse(actualizado);
+    }
+
+    // =====================================================
+    // MÓDULO MÓVIL / EXPLORACIÓN
+    // =====================================================
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProyectoResponse> listarMisProyectos(String correoUsuario) {
+        String correoSanitizado = (correoUsuario != null) ? correoUsuario.trim().toLowerCase() : "";
+        Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(correoSanitizado)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con correo: " + correoUsuario));
+
+        List<ProyectoMiembro> membresias = proyectoMiembroRepository.findByUsuarioIdAndEstadoTrue(usuario.getId());
+
+        return membresias.stream()
+                .map(ProyectoMiembro::getProyecto)
+                .filter(p -> p != null && Boolean.FALSE.equals(p.getEliminado()))
+                .distinct()
+                .map(p -> {
+                    ProyectoResponse dto = ProyectoMapper.toResponse(p);
+                    Long participantes = proyectoMiembroRepository.countByProyectoIdAndEstadoTrue(p.getId());
+                    dto.setCantidadParticipantes(participantes != null ? participantes.intValue() : 0);
+                    return dto;
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProyectoResponse> explorarProyectos(String correoUsuario, String categoriaFiltro) {
+        Set<Long> proyectosExcluidos = new java.util.HashSet<>();
+
+        if (correoUsuario != null && !correoUsuario.isBlank()) {
+            String correoSanitizado = correoUsuario.trim().toLowerCase();
+            usuarioRepository.findByCorreoIgnoreCase(correoSanitizado).ifPresent(usuario -> {
+                // Proyectos donde ya es miembro activo
+                List<ProyectoMiembro> membresias = proyectoMiembroRepository.findByUsuarioIdAndEstadoTrue(usuario.getId());
+                membresias.stream()
+                        .filter(pm -> pm.getProyecto() != null)
+                        .map(pm -> pm.getProyecto().getId())
+                        .forEach(proyectosExcluidos::add);
+
+                // Proyectos donde tiene solicitud aprobada / aceptada
+                List<SolicitudProyecto> solicitudes = solicitudProyectoRepository.findByUsuarioId(usuario.getId());
+                solicitudes.stream()
+                        .filter(s -> ("aceptada".equalsIgnoreCase(s.getEstado()) || "aprobada".equalsIgnoreCase(s.getEstado())) && s.getProyecto() != null)
+                        .map(s -> s.getProyecto().getId())
+                        .forEach(proyectosExcluidos::add);
+            });
+        }
+
+        List<Proyecto> proyectosActivos = proyectoRepository.findByEstadoTrueAndEliminadoFalse();
+
+        return proyectosActivos.stream()
+                .filter(p -> !proyectosExcluidos.contains(p.getId()))
+                .filter(p -> {
+                    if (categoriaFiltro == null || categoriaFiltro.isBlank()) {
+                        return true;
+                    }
+                    String catFiltro = categoriaFiltro.trim().toLowerCase();
+                    if (p.getCategoria() != null) {
+                        if (p.getCategoria().getNombre() != null && p.getCategoria().getNombre().toLowerCase().contains(catFiltro)) {
+                            return true;
+                        }
+                        if (String.valueOf(p.getCategoria().getId()).equals(catFiltro)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .map(p -> {
+                    ProyectoResponse dto = ProyectoMapper.toResponse(p);
+                    Long participantes = proyectoMiembroRepository.countByProyectoIdAndEstadoTrue(p.getId());
+                    dto.setCantidadParticipantes(participantes != null ? participantes.intValue() : 0);
+                    return dto;
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProyectoDetalleResponse obtenerResumenCompleto(Long proyectoId) {
+        return obtenerDetalleCompleto(proyectoId);
     }
 }

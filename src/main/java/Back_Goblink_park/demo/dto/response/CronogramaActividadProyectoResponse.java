@@ -20,6 +20,8 @@ public class CronogramaActividadProyectoResponse {
 
     private Long id;
 
+    private Integer numero;
+
     // =====================================================
     // PROYECTO
     // =====================================================
@@ -101,6 +103,8 @@ public class CronogramaActividadProyectoResponse {
     private String observaciones;
 
     private List<ActividadEvidenciaResponse> evidencias; // ✅ Este campo ahora funcionará
+
+    private List<String> urlsEvidencias;
 
     // =====================================================
     // AUDITORÍA

@@ -17,6 +17,7 @@ public class SolicitudProyectoMapper {
                 .usuarioCorreo(solicitud.getUsuario() != null ? solicitud.getUsuario().getCorreo() : null)
                 .proyectoId(solicitud.getProyecto() != null ? solicitud.getProyecto().getId() : null)
                 .proyectoNombre(solicitud.getProyecto() != null ? solicitud.getProyecto().getNombre() : null)
+                .proyecto(solicitud.getProyecto() != null ? ProyectoMapper.toResponse(solicitud.getProyecto()) : null)
                 .estado(solicitud.getEstado())
                 .mensaje(solicitud.getMensaje())
                 .respuesta(solicitud.getRespuesta())

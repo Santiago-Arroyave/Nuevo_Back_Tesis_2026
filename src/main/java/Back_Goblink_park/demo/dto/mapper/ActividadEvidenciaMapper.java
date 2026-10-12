@@ -21,6 +21,8 @@ public class ActividadEvidenciaMapper {
                 .mimeType(evidencia.getMimeType())
                 .fechaCarga(evidencia.getFechaCarga())
                 .esPrincipal(evidencia.getEsPrincipal())
+                .usuarioId(evidencia.getUsuario() != null ? evidencia.getUsuario().getId() : null)
+                .usuarioNombre(evidencia.getUsuario() != null ? evidencia.getUsuario().getNombres() : null)
                 .build();
     }
 }

@@ -21,12 +21,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import Back_Goblink_park.demo.dto.request.ProyectoCompletoRequest;
+import Back_Goblink_park.demo.dto.response.CronogramaActividadProyectoResponse;
+import Back_Goblink_park.demo.service.interfaces.CronogramaActividadProyectoService;
 
 import jakarta.validation.Valid;
 
 import org.springframework.security.core.context.SecurityContextHolder;
-
-
 
 import java.util.List;
 
@@ -41,6 +41,7 @@ public class ProyectoController {
 
     private final ProyectoService proyectoService;
     private final ProyectoPdfService proyectoPdfService;
+    private final CronogramaActividadProyectoService actividadService;
 
     // =====================================================
     // CREAR
@@ -177,9 +178,39 @@ public class ProyectoController {
                 )
         );
     }
+
     // =====================================================
-// LISTAR PROYECTOS SIN PAGINACIÓN
-// =====================================================
+    // MIS PROYECTOS (USUARIO AUTENTICADO)
+    // =====================================================
+
+    @GetMapping("/mis-proyectos")
+    public ResponseEntity<List<ProyectoResponse>> listarMisProyectos(
+            Authentication authentication
+    ) {
+        String correoUsuario = authentication.getName();
+        return ResponseEntity.ok(
+                proyectoService.listarMisProyectos(correoUsuario)
+        );
+    }
+
+    // =====================================================
+    // EXPLORAR PROYECTOS (USUARIO AUTENTICADO)
+    // =====================================================
+
+    @GetMapping("/explorar")
+    public ResponseEntity<List<ProyectoResponse>> explorarProyectos(
+            @RequestParam(required = false) String categoria,
+            Authentication authentication
+    ) {
+        String correoUsuario = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(
+                proyectoService.explorarProyectos(correoUsuario, categoria)
+        );
+    }
+
+    // =====================================================
+    // LISTAR PROYECTOS SIN PAGINACIÓN
+    // =====================================================
 
     @GetMapping("/todos")
     public ResponseEntity<List<ProyectoResponse>> listarTodosLosProyectos() {
@@ -225,16 +256,29 @@ public class ProyectoController {
     }
 
     // =====================================================
-    // OBTENER POR ID
+    // OBTENER POR ID / RESUMEN COMPLETO
     // =====================================================
 
-    @GetMapping("/{id}/detalle-completo")
+    @GetMapping(value = {"/{id}/detalle-completo", "/{id}/resumen-completo"})
     public ResponseEntity<ProyectoDetalleResponse> obtenerDetalleCompleto(
             @PathVariable Long id
     ) {
 
         return ResponseEntity.ok(
                 proyectoService.obtenerDetalleCompleto(id)
+        );
+    }
+
+    // =====================================================
+    // ACTIVIDADES CRONOLÓGICAS DE UN PROYECTO
+    // =====================================================
+
+    @GetMapping("/{id}/actividades")
+    public ResponseEntity<List<CronogramaActividadProyectoResponse>> listarActividadesProyecto(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(
+                actividadService.listarActividadesPorProyectoCronologico(id)
         );
     }
 

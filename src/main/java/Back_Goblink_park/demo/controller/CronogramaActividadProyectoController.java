@@ -13,8 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import Back_Goblink_park.demo.dto.response.ActividadEvidenciaResponse;
+import org.springframework.security.core.Authentication;
+
 import java.math.BigDecimal;
-import java.util.Base64;  // ← ✅ IMPORT PARA BASE64
 import java.util.List;
 
 @RestController
@@ -136,5 +138,25 @@ public class CronogramaActividadProyectoController {
     public ResponseEntity<BigDecimal> recalcularAvanceProyecto(@PathVariable Long proyectoId) {
         BigDecimal avance = actividadService.recalcularAvanceProyecto(proyectoId);
         return ResponseEntity.ok(avance);
+    }
+
+    // =====================================================
+    // CARGAR EVIDENCIA FOTOGRÁFICA A ACTIVIDAD (SUPABASE STORAGE)
+    // =====================================================
+    @PostMapping(
+            value = "/{idActividad}/evidencias",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<ActividadEvidenciaResponse> subirEvidencia(
+            @PathVariable Long idActividad,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "descripcion", required = false) String descripcion,
+            Authentication authentication
+    ) {
+        String correoUsuario = authentication != null ? authentication.getName() : null;
+        ActividadEvidenciaResponse response = actividadService.subirEvidencia(
+                idActividad, file, descripcion, correoUsuario
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

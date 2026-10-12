@@ -108,4 +108,27 @@ public interface CronogramaActividadProyectoService {
             String descripcionEvidencia,
             String observaciones
     );
+
+    // =====================================================
+    // LISTADO CRONOLÓGICO Y EVIDENCIAS
+    // =====================================================
+
+    List<CronogramaActividadProyectoResponse>
+    listarActividadesPorProyectoCronologico(
+            Long proyectoId
+    );
+
+    Back_Goblink_park.demo.dto.response.ActividadEvidenciaResponse
+    subirEvidencia(
+            Long idActividad,
+            MultipartFile file,
+            String descripcion,
+            String correoUsuario
+    );
+
+    void
+    eliminarEvidenciaActividad(
+            Long evidenciaId,
+            String correoUsuario
+    );
 }

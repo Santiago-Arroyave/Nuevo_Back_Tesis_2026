@@ -93,10 +93,19 @@ public class SolicitudProyectoController {
     }
 
     // =====================================================
-// APP MÓVIL: LISTAR SOLICITUDES DEL USUARIO AUTENTICADO
-// =====================================================
+    // APP MÓVIL: LISTAR SOLICITUDES DEL USUARIO AUTENTICADO
+    // =====================================================
     @GetMapping("/mis-solicitudes")
     public ResponseEntity<List<SolicitudProyectoResponse>> misSolicitudes() {
         return ResponseEntity.ok(solicitudService.listarSolicitudesPorUsuario(getCorreoUsuario()));
+    }
+
+    // =====================================================
+    // APP MÓVIL: CANCELAR SOLICITUD PENDIENTE
+    // =====================================================
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> cancelarSolicitud(@PathVariable Long id) {
+        solicitudService.cancelarSolicitud(id, getCorreoUsuario());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -22,5 +22,8 @@ public class ActividadEvidenciaResponse {
     private String descripcion;
     private Boolean esPrincipal;
 
+    private Long usuarioId;
+    private String usuarioNombre;
+
     private LocalDateTime fechaCarga;
 }
