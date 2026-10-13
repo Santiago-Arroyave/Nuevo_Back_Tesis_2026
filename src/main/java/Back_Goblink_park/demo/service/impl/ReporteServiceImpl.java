@@ -49,11 +49,31 @@ public class ReporteServiceImpl implements ReporteService {
     private final FileStorageService fileStorageService;
 
     // =====================================================
-    // CREAR REPORTE (CON EVIDENCIAS MÚLTIPLES)
+    // CREAR REPORTE (CON EVIDENCIAS MÚLTIPLES E IDEMPOTENCIA)
     // =====================================================
     @Override
     @Transactional
     public ReporteResponse crearReporte(ReporteRequest request) {
+
+        String clientUuid = (request.getClientUuid() != null && !request.getClientUuid().isBlank())
+                ? request.getClientUuid().trim()
+                : null;
+
+        // 0️⃣ VERIFICACIÓN DE IDEMPOTENCIA OFFLINE POR clientUuid
+        if (clientUuid != null) {
+            var existenteOpt = reporteRepository.findByClientUuidWithEvidencias(clientUuid);
+            if (existenteOpt.isPresent()) {
+                Reporte existente = existenteOpt.get();
+                log.info("[ReporteService] Idempotencia activada: clientUuid={} ya existe (id={})",
+                        clientUuid, existente.getId());
+                ReporteResponse dtoExistente = ReporteMapper.toResponse(existente);
+                if (dtoExistente != null) {
+                    dtoExistente.setIdempotentExistente(true);
+                    dtoExistente.setCargoRol(existente.getUsuario() != null ? existente.getUsuario().getCargoRol() : null);
+                }
+                return dtoExistente;
+            }
+        }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String correo = authentication.getName();
@@ -73,6 +93,7 @@ public class ReporteServiceImpl implements ReporteService {
 
         // 1️⃣ CREAR REPORTE
         Reporte reporte = Reporte.builder()
+                .clientUuid(clientUuid)
                 .usuario(usuario)
                 .categoria(categoria)
                 .prioridad(prioridad)
@@ -153,6 +174,24 @@ public class ReporteServiceImpl implements ReporteService {
             dto.setCargoRol(reporteGuardado.getUsuario() != null ? reporteGuardado.getUsuario().getCargoRol() : null);
         }
         return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReporteResponse buscarPorClientUuid(String clientUuid) {
+        if (clientUuid == null || clientUuid.isBlank()) {
+            return null;
+        }
+        return reporteRepository.findByClientUuidWithEvidencias(clientUuid.trim())
+                .map(existente -> {
+                    ReporteResponse dto = ReporteMapper.toResponse(existente);
+                    if (dto != null) {
+                        dto.setIdempotentExistente(true);
+                        dto.setCargoRol(existente.getUsuario() != null ? existente.getUsuario().getCargoRol() : null);
+                    }
+                    return dto;
+                })
+                .orElse(null);
     }
 
     // =====================================================

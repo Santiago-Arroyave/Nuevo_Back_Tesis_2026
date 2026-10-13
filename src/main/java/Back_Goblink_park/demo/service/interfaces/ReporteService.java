@@ -13,11 +13,15 @@ import java.util.List;
 public interface ReporteService {
 
     // =====================================================
-    // CREAR
+    // CREAR & IDEMPOTENCIA
     // =====================================================
 
     ReporteResponse crearReporte(
             ReporteRequest request
+    );
+
+    ReporteResponse buscarPorClientUuid(
+            String clientUuid
     );
 
     // =====================================================

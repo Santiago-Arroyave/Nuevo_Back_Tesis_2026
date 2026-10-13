@@ -18,6 +18,10 @@ import java.time.LocalDateTime;
                                 "id_reporte"
                         }
                 )
+        },
+        indexes = {
+                @Index(name = "idx_proyecto_reportes_proyecto_id", columnList = "id_proyecto"),
+                @Index(name = "idx_proyecto_reportes_reporte_id", columnList = "id_reporte")
         }
 )
 

@@ -51,7 +51,10 @@ public class ReporteRequest {
     @com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = DatosEspecificosDeserializer.class)
     private java.util.Map<String, Object> datosEspecificos;
 
-    // METADATOS
+    // METADATOS & IDEMPOTENCIA OFFLINE
+    @com.fasterxml.jackson.annotation.JsonAlias({"client_uuid", "clientUuid", "idempotencyKey"})
+    private String clientUuid;
+
     private String fuente;
     private Boolean publico;
     private Boolean estado;

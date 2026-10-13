@@ -31,11 +31,10 @@ public class ReporteController {
     private final ReporteService reporteService;
 
     // =====================================================
-    // CREAR REPORTE - MULTIPART FORM-DATA (SIMPLIFICADO)
+    // CREAR REPORTE - MULTIPART FORM-DATA (CON IDEMPOTENCIA OFFLINE)
     // =====================================================
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public ReporteResponse crearReporte(
+    public ResponseEntity<ReporteResponse> crearReporte(
             // Campos básicos del reporte
             @RequestParam("titulo") String titulo,
             @RequestParam("descripcion") String descripcion,
@@ -48,6 +47,10 @@ public class ReporteController {
             @RequestParam(value = "sector", required = false) String sector,
             @RequestParam(value = "datosEspecificos", required = false) String datosEspecificos,
             @RequestParam(value = "datos_especificos", required = false) String datosEspecificosSnake,
+            @RequestParam(value = "clientUuid", required = false) String clientUuid,
+            @RequestParam(value = "client_uuid", required = false) String clientUuidSnake,
+            @RequestHeader(value = "X-Client-UUID", required = false) String headerClientUuid,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
 
             // Archivos de evidencia (pueden ser múltiples)
             @RequestParam(value = "evidencias", required = false) List<MultipartFile> evidencias,
@@ -58,6 +61,7 @@ public class ReporteController {
             @RequestParam(value = "evidenciasDescripcion", required = false) List<String> evidenciasDescripcion,
             @RequestParam(value = "evidenciasPrincipal", required = false) List<Boolean> evidenciasPrincipal
     ) {
+        String resolvedClientUuid = resolverClientUuid(clientUuid, clientUuidSnake, headerClientUuid, idempotencyKey);
 
         // Deserializar datosEspecificos si vienen como cadena JSON (multipart)
         Map<String, Object> mapDatos = null;
@@ -76,6 +80,7 @@ public class ReporteController {
 
         // Construir request básico
         ReporteRequest request = ReporteRequest.builder()
+                .clientUuid(resolvedClientUuid)
                 .titulo(titulo)
                 .descripcion(descripcion)
                 .categoriaId(categoriaId)
@@ -129,18 +134,49 @@ public class ReporteController {
             request.setEvidencias(evidenciasList);
         }
 
-        return reporteService.crearReporte(request);
+        return procesarCreacionConIdempotencia(request);
     }
 
     // =====================================================
-    // CREAR REPORTE - APPLICATION/JSON
+    // CREAR REPORTE - APPLICATION/JSON (CON IDEMPOTENCIA OFFLINE)
     // =====================================================
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
-    public ReporteResponse crearReporteJson(
-            @Valid @RequestBody ReporteRequest request
+    public ResponseEntity<ReporteResponse> crearReporteJson(
+            @Valid @RequestBody ReporteRequest request,
+            @RequestHeader(value = "X-Client-UUID", required = false) String headerClientUuid,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
-        return reporteService.crearReporte(request);
+        String resolved = resolverClientUuid(request.getClientUuid(), null, headerClientUuid, idempotencyKey);
+        request.setClientUuid(resolved);
+        return procesarCreacionConIdempotencia(request);
+    }
+
+    private ResponseEntity<ReporteResponse> procesarCreacionConIdempotencia(ReporteRequest request) {
+        try {
+            ReporteResponse response = reporteService.crearReporte(request);
+            if (response != null && response.isIdempotentExistente()) {
+                return ResponseEntity.ok(response);
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            if (request.getClientUuid() != null && !request.getClientUuid().isBlank()) {
+                ReporteResponse existente = reporteService.buscarPorClientUuid(request.getClientUuid());
+                if (existente != null) {
+                    return ResponseEntity.ok(existente);
+                }
+            }
+            throw ex;
+        }
+    }
+
+    private String resolverClientUuid(String... candidatos) {
+        if (candidatos == null) return null;
+        for (String c : candidatos) {
+            if (c != null && !c.isBlank()) {
+                return c.trim();
+            }
+        }
+        return null;
     }
 
     // =====================================================

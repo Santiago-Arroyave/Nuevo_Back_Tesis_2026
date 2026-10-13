@@ -10,7 +10,18 @@ import java.util.List;
 import java.util.Map;
 
 @Entity
-@Table(name = "reportes")
+@Table(
+        name = "reportes",
+        indexes = {
+                @Index(name = "idx_reportes_client_uuid", columnList = "client_uuid", unique = true),
+                @Index(name = "idx_reportes_usuario_id", columnList = "id_usuario"),
+                @Index(name = "idx_reportes_estado_reporte_id", columnList = "id_estado_reporte"),
+                @Index(name = "idx_reportes_estado", columnList = "estado"),
+                @Index(name = "idx_reportes_categoria_id", columnList = "id_categoria"),
+                @Index(name = "idx_reportes_prioridad_id", columnList = "id_prioridad"),
+                @Index(name = "idx_reportes_eliminado_fecha", columnList = "eliminado, fecha_reporte")
+        }
+)
 
 @Getter
 @Setter
@@ -20,13 +31,16 @@ import java.util.Map;
 public class Reporte {
 
     // =====================================================
-    // ID
+    // ID & IDEMPOTENCIA OFFLINE
     // =====================================================
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_reporte")
     private Long id;
+
+    @Column(name = "client_uuid", unique = true, nullable = true, length = 100)
+    private String clientUuid;
 
     // =====================================================
     // RELACIONES

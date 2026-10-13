@@ -25,8 +25,9 @@ public class ReporteMapper {
         boolean esProyecto = (proyectoId != null) || "CONVERTIDO_EN_PROYECTO".equals(estadoCodigo);
 
         return ReporteResponse.builder()
-                // ID
+                // ID & IDEMPOTENCIA
                 .id(reporte.getId())
+                .clientUuid(reporte.getClientUuid())
 
                 // USUARIO
                 .usuarioId(reporte.getUsuario() != null ? reporte.getUsuario().getId() : null)

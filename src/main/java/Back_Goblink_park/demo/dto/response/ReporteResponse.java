@@ -13,9 +13,13 @@ import java.util.Map;
 public class ReporteResponse {
 
     // =====================================================
-    // ID
+    // ID & IDEMPOTENCIA
     // =====================================================
     private Long id;
+    private String clientUuid;
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private boolean idempotentExistente;
 
     // =====================================================
     // USUARIO

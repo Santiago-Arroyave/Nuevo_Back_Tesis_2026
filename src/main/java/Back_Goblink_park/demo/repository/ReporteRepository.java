@@ -90,6 +90,18 @@ public interface ReporteRepository
     @Query("SELECT r FROM Reporte r LEFT JOIN FETCH r.evidencias LEFT JOIN FETCH r.usuario WHERE r.id = :id")
     Optional<Reporte> findByIdWithEvidencias(@Param("id") Long id);
 
+    // ✅ IDEMPOTENCIA OFFLINE: Buscar reporte por client_uuid con sus relaciones cargadas
+    @Query("""
+        SELECT r FROM Reporte r
+        LEFT JOIN FETCH r.evidencias
+        LEFT JOIN FETCH r.usuario
+        LEFT JOIN FETCH r.categoria
+        LEFT JOIN FETCH r.prioridad
+        LEFT JOIN FETCH r.estadoReporte
+        WHERE r.clientUuid = :clientUuid
+    """)
+    Optional<Reporte> findByClientUuidWithEvidencias(@Param("clientUuid") String clientUuid);
+
     // ✅ MÉTODO NUEVO: Listar reportes CON evidencias y usuario
     @Query("SELECT r FROM Reporte r LEFT JOIN FETCH r.evidencias LEFT JOIN FETCH r.usuario WHERE r.eliminado = false")
     List<Reporte> findAllWithEvidencias();
