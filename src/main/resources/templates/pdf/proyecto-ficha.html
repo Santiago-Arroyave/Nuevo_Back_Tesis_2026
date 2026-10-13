@@ -1,0 +1,864 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title th:text="${ 'Ficha del Proyecto - ' + nombreProyecto }">Ficha del Proyecto - GoblinPark</title>
+    <style type="text/css">
+        @page {
+            size: A4 portrait;
+            margin: 1.5cm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 9.5pt;
+            color: #1F2D27;
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+            background-color: #FFFFFF;
+        }
+
+        .page {
+            width: 100%;
+            min-height: 26.2cm;
+            position: relative;
+            padding-bottom: 32px;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        /* ================= HEADER ================= */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-bottom: 2px solid #1B4D3E;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+
+        .header-left {
+            text-align: left;
+            vertical-align: middle;
+            padding-bottom: 8px;
+        }
+
+        .header-right {
+            text-align: right;
+            vertical-align: middle;
+            padding-bottom: 8px;
+        }
+
+        .brand-wrap {
+            border-collapse: collapse;
+        }
+
+        .logo-img {
+            width: 38px;
+            height: 38px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        .brand-title {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 15pt;
+            font-weight: bold;
+            color: #1B4D3E;
+            margin: 0;
+            letter-spacing: 0.3px;
+        }
+
+        .brand-subtitle {
+            font-size: 8pt;
+            color: #546E62;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 2px;
+        }
+
+        .doc-tag {
+            font-size: 9pt;
+            font-weight: bold;
+            color: #1B4D3E;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .doc-subtag {
+            font-size: 8pt;
+            color: #546E62;
+            margin-top: 2px;
+        }
+
+        /* ================= HERO / PROJECT TITLE ================= */
+        .project-title {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 20pt;
+            font-weight: bold;
+            color: #12352A;
+            margin: 6px 0 10px 0;
+            line-height: 1.2;
+        }
+
+        .badges-row {
+            margin-bottom: 12px;
+        }
+
+        .badge-chip {
+            display: inline-block;
+            background-color: #E8F3EC;
+            color: #1B4D3E;
+            border: 1px solid #B7D7C4;
+            border-radius: 12px;
+            padding: 3px 10px;
+            font-size: 8pt;
+            font-weight: bold;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        .badge-chip-priority {
+            display: inline-block;
+            background-color: #F2F7F4;
+            color: #265C4B;
+            border: 1px solid #C6DDD0;
+            border-radius: 12px;
+            padding: 3px 10px;
+            font-size: 8pt;
+            font-weight: bold;
+            margin-right: 6px;
+            margin-bottom: 4px;
+        }
+
+        .description-box {
+            background-color: #F7FAF8;
+            border-left: 3.5px solid #1B4D3E;
+            border-radius: 4px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            text-align: justify;
+            line-height: 1.5;
+            font-size: 9.2pt;
+            color: #2B3D34;
+        }
+
+        /* ================= KPI 3-CARDS GRID ================= */
+        .kpi-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 8px 0;
+            margin-left: -8px;
+            margin-right: -8px;
+            margin-bottom: 16px;
+        }
+
+        .kpi-card {
+            width: 33.33%;
+            background-color: #FFFFFF;
+            border: 1px solid #CFE0D7;
+            border-top: 3px solid #1B4D3E;
+            border-radius: 6px;
+            padding: 10px 12px;
+            vertical-align: top;
+        }
+
+        .kpi-label {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #5A7569;
+            margin-bottom: 4px;
+        }
+
+        .kpi-value {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 15pt;
+            font-weight: bold;
+            color: #1B4D3E;
+            margin-bottom: 3px;
+        }
+
+        .kpi-value-period {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 11.5pt;
+            font-weight: bold;
+            color: #1B4D3E;
+            margin-bottom: 4px;
+            line-height: 1.25;
+        }
+
+        .kpi-sub {
+            font-size: 8pt;
+            color: #546E62;
+        }
+
+        /* ================= SECTION HEADERS ================= */
+        .section-header {
+            margin-top: 10px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #D6E4DC;
+            padding-bottom: 4px;
+        }
+
+        .section-num {
+            display: inline-block;
+            background-color: #1B4D3E;
+            color: #FFFFFF;
+            font-size: 8pt;
+            font-weight: bold;
+            padding: 2px 7px;
+            border-radius: 4px;
+            margin-right: 6px;
+        }
+
+        .section-title {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 11.5pt;
+            font-weight: bold;
+            color: #12352A;
+        }
+
+        /* ================= 01 OBJETIVOS ================= */
+        .objetivo-item {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #F9FCFA;
+            border: 1px solid #DFECE4;
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+        .objetivo-num-cell {
+            width: 34px;
+            padding: 7px 6px 7px 10px;
+            vertical-align: middle;
+        }
+
+        .objetivo-circle {
+            display: inline-block;
+            width: 22px;
+            height: 22px;
+            line-height: 22px;
+            text-align: center;
+            background-color: #E3F1E8;
+            color: #1B4D3E;
+            border: 1px solid #B2D4C0;
+            border-radius: 11px;
+            font-size: 8pt;
+            font-weight: bold;
+        }
+
+        .objetivo-text-cell {
+            padding: 7px 12px 7px 4px;
+            vertical-align: middle;
+            font-size: 9pt;
+            color: #24362E;
+        }
+
+        /* ================= 02 METAS GRID ================= */
+        .metas-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 8px 6px;
+            margin-left: -8px;
+        }
+
+        .meta-card {
+            background-color: #F7FAF8;
+            border: 1px solid #CFE0D7;
+            border-radius: 6px;
+            padding: 9px 11px;
+            vertical-align: top;
+        }
+
+        .meta-headline {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 12.5pt;
+            font-weight: bold;
+            color: #1B4D3E;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+            letter-spacing: 0.3px;
+        }
+
+        .meta-desc {
+            font-size: 8.5pt;
+            color: #364B41;
+            line-height: 1.35;
+        }
+
+        /* ================= TABLES (PAGE 2) ================= */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+            font-size: 8.8pt;
+        }
+
+        .data-table th {
+            background-color: #1B4D3E;
+            color: #FFFFFF;
+            font-weight: bold;
+            text-align: left;
+            padding: 7px 10px;
+            font-size: 8.5pt;
+            border: 1px solid #1B4D3E;
+        }
+
+        .data-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #DFECE4;
+            border-left: 1px solid #EBF3EE;
+            border-right: 1px solid #EBF3EE;
+            color: #24362E;
+            vertical-align: middle;
+        }
+
+        .row-even {
+            background-color: #F9FCFA;
+        }
+
+        .row-odd {
+            background-color: #FFFFFF;
+        }
+
+        .total-row td {
+            background-color: #E8F3EC;
+            color: #12352A;
+            font-weight: bold;
+            border-top: 2px solid #1B4D3E;
+            border-bottom: 2px solid #1B4D3E;
+            padding: 7px 10px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .status-pill {
+            display: inline-block;
+            background-color: #E3F3EA;
+            color: #165B3C;
+            border: 1px solid #A9D8BE;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 7.5pt;
+            font-weight: bold;
+        }
+
+        .status-pill-pending {
+            display: inline-block;
+            background-color: #FFF6E5;
+            color: #8A5A00;
+            border: 1px solid #F0D299;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 7.5pt;
+            font-weight: bold;
+        }
+
+        /* ================= PAGE 3: EVIDENCIAS 2x2 GRID ================= */
+        .evidencias-grid {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 10px 10px;
+            margin-left: -10px;
+        }
+
+        .evidencia-card {
+            width: 50%;
+            background-color: #FFFFFF;
+            border: 1px solid #CFE0D7;
+            border-radius: 8px;
+            padding: 10px 12px;
+            vertical-align: top;
+            page-break-inside: avoid;
+        }
+
+        .evidencia-card-empty {
+            width: 50%;
+            border: none;
+            padding: 0;
+        }
+
+        .ev-card-header {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 6px;
+        }
+
+        .ev-num-badge {
+            display: inline-block;
+            background-color: #1B4D3E;
+            color: #FFFFFF;
+            font-size: 8pt;
+            font-weight: bold;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+
+        .ev-title {
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 10.5pt;
+            font-weight: bold;
+            color: #12352A;
+            margin: 4px 0 6px 0;
+        }
+
+        .ev-meta {
+            font-size: 8pt;
+            color: #4A6358;
+            margin-bottom: 3px;
+        }
+
+        .ev-meta-label {
+            font-weight: bold;
+            color: #1B4D3E;
+        }
+
+        .ev-obs {
+            font-size: 8.2pt;
+            color: #2E4239;
+            background-color: #F7FAF8;
+            border-left: 2.5px solid #88B39E;
+            padding: 5px 8px;
+            margin: 6px 0 8px 0;
+            line-height: 1.35;
+        }
+
+        .ev-photo-box {
+            width: 100%;
+            height: 120px;
+            background-color: #F2F7F4;
+            border: 1px solid #D5E3DC;
+            border-radius: 6px;
+            text-align: center;
+            overflow: hidden;
+            padding: 2px;
+        }
+
+        .ev-photo-img {
+            max-width: 100%;
+            max-height: 114px;
+            width: auto;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .ev-no-photo {
+            line-height: 114px;
+            font-size: 8pt;
+            color: #6C8579;
+            font-style: italic;
+        }
+
+        /* ================= FOOTER ================= */
+        .footer-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            border-top: 1px solid #CFE0D7;
+            padding-top: 6px;
+        }
+
+        .footer-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 8pt;
+            color: #5A7569;
+        }
+
+        .footer-left {
+            text-align: left;
+        }
+
+        .footer-right {
+            text-align: right;
+            font-weight: bold;
+            color: #1B4D3E;
+        }
+
+        .empty-note {
+            font-size: 8.5pt;
+            color: #688074;
+            font-style: italic;
+            padding: 8px 10px;
+            background-color: #F7FAF8;
+            border: 1px dashed #C8DDD1;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ========================================================================= -->
+    <!-- PÁGINA 1: PORTADA Y RESUMEN ESTRATÉGICO (01/03)                           -->
+    <!-- ========================================================================= -->
+    <div class="page page-break">
+        <!-- Header -->
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    <table class="brand-wrap">
+                        <tr>
+                            <td th:if="${logoDataUri != null}">
+                                <img class="logo-img" th:src="${logoDataUri}" alt="GoblinPark" />
+                            </td>
+                            <td>
+                                <div class="brand-title">GoblinPark</div>
+                                <div class="brand-subtitle">Sistema de Gestión Ambiental</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="header-right">
+                    <div class="doc-tag">FICHA DEL PROYECTO</div>
+                    <div class="doc-subtag">PNR Páramo del Duende</div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Título Institucional Serif -->
+        <div class="project-title" th:text="${nombreProyecto}">Conservación Laguna Verde</div>
+
+        <!-- Badges de Estado, Prioridad y Categoría -->
+        <div class="badges-row">
+            <span class="badge-chip" th:text="${'Estado: ' + estadoProyecto}">Estado: Finalizado</span>
+            <span class="badge-chip-priority" th:text="${'Prioridad: ' + prioridadProyecto}">Prioridad: Alta</span>
+            <span class="badge-chip" th:text="${'Categoría: ' + categoriaProyecto}">Categoría: Flora</span>
+            <span class="badge-chip-priority" th:if="${ubicacionProyecto != null and !ubicacionProyecto.isEmpty()}"
+                  th:text="${'Sector: ' + ubicacionProyecto}">Sector: Páramo del Duende</span>
+        </div>
+
+        <!-- Descripción General -->
+        <div class="description-box" th:text="${descripcionProyecto}">
+            Descripción general del proyecto de conservación y monitoreo ambiental en el Parque Natural Regional Páramo del Duende.
+        </div>
+
+        <!-- Métricas Clave (3 Tarjetas Grid) -->
+        <table class="kpi-table">
+            <tr>
+                <td class="kpi-card">
+                    <div class="kpi-label">Avance de Ejecución</div>
+                    <div class="kpi-value" th:text="${avanceTexto}">100%</div>
+                    <div class="kpi-sub" th:text="${resumenActividadesTexto}">4 de 4 actividades completadas</div>
+                </td>
+                <td class="kpi-card">
+                    <div class="kpi-label">Presupuesto Estimado</div>
+                    <div class="kpi-value" th:text="${presupuestoEstimadoTexto}">$ 4.500.000</div>
+                    <div class="kpi-sub">Pesos colombianos (COP)</div>
+                </td>
+                <td class="kpi-card">
+                    <div class="kpi-label">Periodo de Ejecución</div>
+                    <div class="kpi-value-period" th:text="${periodoTexto}">12 oct 2026 al 04 feb 2027</div>
+                    <div class="kpi-sub">Cronograma oficial del proyecto</div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 01 Objetivos de conservación -->
+        <div class="section-header">
+            <span class="section-num">01</span>
+            <span class="section-title">Objetivos de conservación</span>
+        </div>
+
+        <div th:if="${objetivos == null or objetivos.isEmpty()}" class="empty-note">
+            No se registraron objetivos específicos para este proyecto.
+        </div>
+
+        <div th:if="${objetivos != null and !objetivos.isEmpty()}">
+            <table class="objetivo-item" th:each="obj : ${objetivos}">
+                <tr>
+                    <td class="objetivo-num-cell">
+                        <span class="objetivo-circle" th:text="${obj.numero}">01</span>
+                    </td>
+                    <td class="objetivo-text-cell" th:text="${obj.descripcion}">
+                        Restaurar el corredor ecológico de frailejones en el sector norte.
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- 02 Metas del proyecto -->
+        <div class="section-header">
+            <span class="section-num">02</span>
+            <span class="section-title">Metas del proyecto</span>
+        </div>
+
+        <div th:if="${metasFilas == null or metasFilas.isEmpty()}" class="empty-note">
+            No se registraron metas cuantitativas para este proyecto.
+        </div>
+
+        <table class="metas-table" th:if="${metasFilas != null and !metasFilas.isEmpty()}">
+            <tr th:each="fila : ${metasFilas}">
+                <td class="meta-card" th:each="meta : ${fila}"
+                    th:style="${'width: ' + (100 / fila.size()) + '%;'}">
+                    <div class="meta-headline" th:text="${meta.indicador}">150 INDIVIDUOS</div>
+                    <div class="meta-desc" th:text="${meta.descripcion}">Plántulas nativas sembradas y monitoreadas en campo.</div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Footer Página 1 -->
+        <div class="footer-bar">
+            <table class="footer-table">
+                <tr>
+                    <td class="footer-left" th:text="${'ID Proyecto: #' + idProyecto + ' · GoblinPark — PNR Páramo del Duende'}">
+                        ID Proyecto: #19 · GoblinPark — PNR Páramo del Duende
+                    </td>
+                    <td class="footer-right">Resumen 01/03</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- PÁGINA 2: RECURSOS, EQUIPO Y CRONOGRAMA (02/03)                           -->
+    <!-- ========================================================================= -->
+    <div class="page page-break">
+        <!-- Header unificado -->
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    <table class="brand-wrap">
+                        <tr>
+                            <td th:if="${logoDataUri != null}">
+                                <img class="logo-img" th:src="${logoDataUri}" alt="GoblinPark" />
+                            </td>
+                            <td>
+                                <div class="brand-title">GoblinPark</div>
+                                <div class="brand-subtitle">Recursos, equipo y planificación</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="header-right">
+                    <div class="doc-tag" th:text="${nombreProyecto}">Conservación Laguna Verde</div>
+                    <div class="doc-subtag" th:text="${'Proyecto #' + idProyecto + ' · PNR Páramo del Duende'}">Proyecto #19 · PNR Páramo del Duende</div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- 03 Presupuesto -->
+        <div class="section-header">
+            <span class="section-num">03</span>
+            <span class="section-title">Presupuesto del proyecto</span>
+        </div>
+
+        <div th:if="${presupuestoItems == null or presupuestoItems.isEmpty()}" class="empty-note">
+            No se registraron rubros presupuestales detallados para este proyecto.
+        </div>
+
+        <table class="data-table" th:if="${presupuestoItems != null and !presupuestoItems.isEmpty()}">
+            <thead>
+                <tr>
+                    <th style="width: 35%;">Rubro</th>
+                    <th style="width: 43%;">Observaciones</th>
+                    <th style="width: 22%; text-align: right;">Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="item, iterStat : ${presupuestoItems}"
+                    th:class="${iterStat.even ? 'row-even' : 'row-odd'}">
+                    <td style="font-weight: bold;" th:text="${item.rubro}">Insumos forestales</td>
+                    <td th:text="${item.observaciones}">Sustrato orgánico y bolsas biodegradables</td>
+                    <td class="text-right" style="font-weight: bold;" th:text="${item.montoFormateado}">$ 1.500.000</td>
+                </tr>
+                <tr class="total-row">
+                    <td colspan="2">TOTAL ESTIMADO</td>
+                    <td class="text-right" th:text="${totalPresupuestoTexto}">$ 4.500.000</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- 04 Miembros del proyecto -->
+        <div class="section-header">
+            <span class="section-num">04</span>
+            <span class="section-title">Miembros del proyecto</span>
+        </div>
+
+        <div th:if="${miembros == null or miembros.isEmpty()}" class="empty-note">
+            No se registraron miembros asignados a este proyecto.
+        </div>
+
+        <table class="data-table" th:if="${miembros != null and !miembros.isEmpty()}">
+            <thead>
+                <tr>
+                    <th style="width: 36%;">Nombre</th>
+                    <th style="width: 40%;">Correo electrónico</th>
+                    <th style="width: 24%;">Rol</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="m, iterStat : ${miembros}"
+                    th:class="${iterStat.even ? 'row-even' : 'row-odd'}">
+                    <td style="font-weight: bold;" th:text="${m.nombre}">Juan Pérez</td>
+                    <td th:text="${m.correo}">juan.perez@goblinpark.org</td>
+                    <td>
+                        <span class="status-pill" th:text="${m.rol}">Coordinador</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- 05 Cronograma de actividades -->
+        <div class="section-header">
+            <span class="section-num">05</span>
+            <span class="section-title">Cronograma de actividades</span>
+        </div>
+
+        <div th:if="${actividades == null or actividades.isEmpty()}" class="empty-note">
+            No se registraron actividades en el cronograma de este proyecto.
+        </div>
+
+        <table class="data-table" th:if="${actividades != null and !actividades.isEmpty()}">
+            <thead>
+                <tr>
+                    <th style="width: 34%;">Actividad</th>
+                    <th style="width: 15%;">Inicio</th>
+                    <th style="width: 15%;">Fin</th>
+                    <th style="width: 20%;">Responsable</th>
+                    <th style="width: 16%; text-align: center;">Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="act, iterStat : ${actividades}"
+                    th:class="${iterStat.even ? 'row-even' : 'row-odd'}">
+                    <td>
+                        <span style="font-weight: bold; color: #1B4D3E;" th:text="${act.numero + '. '}">01. </span>
+                        <span style="font-weight: bold;" th:text="${act.nombre}">Preparación de terreno</span>
+                    </td>
+                    <td th:text="${act.fechaInicio}">12 oct 2026</td>
+                    <td th:text="${act.fechaFin}">28 oct 2026</td>
+                    <td th:text="${act.responsable}">Guardabosques</td>
+                    <td class="text-center">
+                        <span th:class="${act.completada ? 'status-pill' : 'status-pill-pending'}"
+                              th:text="${act.estadoEtiqueta}">Completada</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Footer Página 2 -->
+        <div class="footer-bar">
+            <table class="footer-table">
+                <tr>
+                    <td class="footer-left" th:text="${'ID Proyecto: #' + idProyecto + ' · Recursos, equipo y cronograma'}">
+                        ID Proyecto: #19 · Recursos, equipo y cronograma
+                    </td>
+                    <td class="footer-right">Recursos y equipo 02/03</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- PÁGINA 3: ACTIVIDADES Y EVIDENCIAS FOTOGRÁFICAS (03/03)                   -->
+    <!-- ========================================================================= -->
+    <div class="page">
+        <!-- Header -->
+        <table class="header-table">
+            <tr>
+                <td class="header-left">
+                    <table class="brand-wrap">
+                        <tr>
+                            <td th:if="${logoDataUri != null}">
+                                <img class="logo-img" th:src="${logoDataUri}" alt="GoblinPark" />
+                            </td>
+                            <td>
+                                <div class="brand-title">GoblinPark</div>
+                                <div class="brand-subtitle">Actividades y evidencias - Registro de ejecución del proyecto</div>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="header-right">
+                    <div class="doc-tag" th:text="${nombreProyecto}">Conservación Laguna Verde</div>
+                    <div class="doc-subtag" th:text="${'Evidencias de campo · Proyecto #' + idProyecto}">Evidencias de campo · Proyecto #19</div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="section-header">
+            <span class="section-num">06</span>
+            <span class="section-title">Registro fotográfico y evidencias de ejecución</span>
+        </div>
+
+        <div th:if="${evidenciasFilas == null or evidenciasFilas.isEmpty()}" class="empty-note">
+            No se registraron actividades ni evidencias fotográficas para este proyecto.
+        </div>
+
+        <!-- Grid 2x2 de Tarjetas de Evidencia -->
+        <table class="evidencias-grid" th:if="${evidenciasFilas != null and !evidenciasFilas.isEmpty()}">
+            <tr th:each="par : ${evidenciasFilas}">
+                <td class="evidencia-card" th:each="act : ${par}">
+                    <table class="ev-card-header">
+                        <tr>
+                            <td style="text-align: left;">
+                                <span class="ev-num-badge" th:text="${act.numero}">01</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <span th:class="${act.completada ? 'status-pill' : 'status-pill-pending'}"
+                                      th:text="${act.estadoEtiqueta}">Completada</span>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="ev-title" th:text="${act.nombre}">Delimitación de parcela</div>
+
+                    <div class="ev-meta">
+                        <span class="ev-meta-label">Periodo: </span>
+                        <span th:text="${act.fechaInicio + ' — ' + act.fechaFin}">12 oct 2026 — 25 oct 2026</span>
+                    </div>
+                    <div class="ev-meta">
+                        <span class="ev-meta-label">Responsable: </span>
+                        <span th:text="${act.responsable}">Carlos Méndez</span>
+                    </div>
+
+                    <div class="ev-obs" th:text="${act.observaciones}">
+                        Se realizó el cerramiento perimetral y registro fotográfico de los individuos de Espeletia.
+                    </div>
+
+                    <div class="ev-photo-box">
+                        <img class="ev-photo-img"
+                             th:if="${act.fotoDataUri != null}"
+                             th:src="${act.fotoDataUri}"
+                             alt="Evidencia fotográfica" />
+                        <div class="ev-no-photo" th:if="${act.fotoDataUri == null}">
+                            Sin evidencia fotográfica adjunta
+                        </div>
+                    </div>
+                </td>
+                <td class="evidencia-card-empty" th:if="${par.size() == 1}"></td>
+            </tr>
+        </table>
+
+        <!-- Footer Página 3 -->
+        <div class="footer-bar">
+            <table class="footer-table">
+                <tr>
+                    <td class="footer-left" th:text="${'Generado el ' + fechaGeneracion + ' · GoblinPark — Sistema de Gestión Ambiental'}">
+                        Generado el 12/10/2026 20:58 · GoblinPark — Sistema de Gestión Ambiental
+                    </td>
+                    <td class="footer-right">Actividades y evidencias 03/03</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

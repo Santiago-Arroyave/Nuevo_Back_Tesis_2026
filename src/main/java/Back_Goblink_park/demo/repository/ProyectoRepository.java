@@ -126,4 +126,20 @@ public interface ProyectoRepository
     List<Proyecto> findTop5ByOrderByCreatedAtDesc();
 
     Long countByEstadoProyectoIdAndEliminadoFalse(long l);
+
+    @Query("""
+        SELECT COUNT(p) FROM Proyecto p
+        JOIN p.estadoProyecto ep
+        WHERE p.eliminado = false
+          AND LOWER(TRIM(ep.nombre)) IN ('planificación', 'planificacion', 'en ejecución', 'en ejecucion', 'en_ejecucion', 'activo', 'en curso', 'en progreso')
+    """)
+    Long countProyectosEnCurso();
+
+    @Query("""
+        SELECT COUNT(p) FROM Proyecto p
+        JOIN p.estadoProyecto ep
+        WHERE p.eliminado = false
+          AND LOWER(TRIM(ep.nombre)) IN ('finalizado', 'finalizada', 'completado', 'completada', 'terminado')
+    """)
+    Long countProyectosFinalizados();
 }

@@ -33,7 +33,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final CronogramaActividadProyectoRepository cronogramaRepository;
 
     // =========================================
-    // RESUMEN DASHBOARD
+    // RESUMEN DASHBOARD / KPIS
     // =========================================
     @Override
     public DashboardResumenResponse obtenerResumen() {
@@ -42,22 +42,29 @@ public class DashboardServiceImpl implements DashboardService {
                 .stream()
                 .filter(a -> a.getFechaFin() != null &&
                         a.getFechaFin().isBefore(LocalDate.now()) &&
-                        !"completado".equalsIgnoreCase(a.getEstado()))
+                        !"completado".equalsIgnoreCase(a.getEstado()) &&
+                        !"completada".equalsIgnoreCase(a.getEstado()))
                 .toList();
+
+        Long reportesPendientes = reporteRepository.countReportesPendientesDashboard();
+        Long reportesEnRevision = reporteRepository.countReportesEnRevisionDashboard();
+        Long proyectosEnCurso = proyectoRepository.countProyectosEnCurso();
+        Long proyectosFinalizados = proyectoRepository.countProyectosFinalizados();
+        Long reportesResueltos = reporteRepository.countReportesResueltosDashboard();
+        Long convertidosEnProyecto = reporteRepository.countReportesConvertidosEnProyecto();
 
         return DashboardResumenResponse.builder()
                 .totalReportes(reporteRepository.countByEliminadoFalse())
-                .reportesPendientes(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(1L))
-                .reportesEnRevision(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(5L))
-                .reportesResueltos(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(3L))
-                .reportesConvertidosProyecto(reporteRepository.countByEstadoReporteIdAndEliminadoFalse(7L))
+                .reportesPendientes(reportesPendientes != null ? reportesPendientes : 0L)
+                .reportesEnRevision(reportesEnRevision != null ? reportesEnRevision : 0L)
+                .reportesResueltos(reportesResueltos != null ? reportesResueltos : 0L)
+                .reportesConvertidosProyecto(convertidosEnProyecto != null ? convertidosEnProyecto : 0L)
+                .convertidosEnProyecto(convertidosEnProyecto != null ? convertidosEnProyecto : 0L)
                 .reportesCriticos(reporteRepository.countByPrioridadIdAndEliminadoFalse(4L))
                 .actividadesVencidas((long) actividadesVencidas.size())
-
-                // ✅ CORREGIDO: Usar estadoProyectoId específico
-                .proyectosActivos(proyectoRepository.countByEstadoProyectoIdAndEliminadoFalse(2L)) // 2 = En ejecución
-                .proyectosFinalizados(proyectoRepository.countByEstadoProyectoIdAndEliminadoFalse(4L)) // 4 = Finalizado
-
+                .proyectosActivos(proyectosEnCurso != null ? proyectosEnCurso : 0L)
+                .proyectosEnCurso(proyectosEnCurso != null ? proyectosEnCurso : 0L)
+                .proyectosFinalizados(proyectosFinalizados != null ? proyectosFinalizados : 0L)
                 .miembrosActivos(usuarioRepository.countByEstadoTrue())
                 .build();
     }
@@ -99,12 +106,13 @@ public class DashboardServiceImpl implements DashboardService {
     public List<ActividadVencidaDTO> obtenerActividadesVencidas() {
         LocalDate hoy = LocalDate.now();
 
-        // Busca actividades con fecha fin < hoy y estado != completado
+        // Busca actividades con fecha fin < hoy y estado != completado/completada
         List<CronogramaActividadProyecto> vencidas = cronogramaRepository.findAll()
                 .stream()
                 .filter(a -> a.getFechaFin() != null &&
                         a.getFechaFin().isBefore(hoy) &&
-                        !"COMPLETADO".equalsIgnoreCase(a.getEstado()))
+                        !"COMPLETADO".equalsIgnoreCase(a.getEstado()) &&
+                        !"COMPLETADA".equalsIgnoreCase(a.getEstado()))
                 .limit(5)
                 .toList();
 

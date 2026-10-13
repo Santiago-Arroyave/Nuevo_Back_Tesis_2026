@@ -57,4 +57,8 @@ public class ProyectoRequest {
     private Double porcentajeAvance;
 
     private Boolean estado;
+
+    private java.util.List<Long> reporteIds;
+
+    private java.util.List<Long> reportesIds;
 }

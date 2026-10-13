@@ -23,6 +23,8 @@ public class ProyectoCompletoRequest {
 
     private List<Long> reporteIds;
 
+    private List<Long> reportesIds;
+
     // =====================================================
     // MIEMBROS DEL PROYECTO
     // =====================================================

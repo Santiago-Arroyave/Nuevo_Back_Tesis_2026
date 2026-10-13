@@ -23,7 +23,7 @@ public class DashboardController {
     // RESUMEN DASHBOARD
     // =========================================
 
-    @GetMapping("/resumen")
+    @GetMapping({"/resumen", "/kpis"})
     public ResponseEntity<DashboardResumenResponse> obtenerResumen() {
 
         return ResponseEntity.ok(

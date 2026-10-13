@@ -477,7 +477,7 @@ public class ProyectoController {
             ProyectoDetalleResponse proyecto =
                     proyectoService.obtenerDetalleCompleto(id);
 
-            // Generar PDF
+            // Generar PDF editorial
             byte[] pdfContent = proyectoPdfService.generarPdfProyecto(proyecto);
 
             if (pdfContent == null) {
@@ -486,12 +486,22 @@ public class ProyectoController {
                         .build();
             }
 
+            String rawNombre = (proyecto.getProyecto() != null && proyecto.getProyecto().getNombre() != null)
+                    ? proyecto.getProyecto().getNombre()
+                    : "Proyecto-" + id;
+            String slug = java.text.Normalizer.normalize(rawNombre, java.text.Normalizer.Form.NFD)
+                    .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+                    .replaceAll("[^a-zA-Z0-9\\s-]", "")
+                    .trim()
+                    .replaceAll("\\s+", "-");
+            String fileName = slug.isEmpty() ? ("Ficha-Proyecto-" + id + ".pdf") : ("Ficha-" + slug + ".pdf");
+
             // Configurar headers para descarga
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
             headers.setContentDispositionFormData(
                     "attachment",
-                    "proyecto-" + id + ".pdf"
+                    fileName
             );
             headers.setContentLength(pdfContent.length);
 

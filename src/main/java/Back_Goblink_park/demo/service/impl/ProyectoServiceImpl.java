@@ -5,6 +5,7 @@ import Back_Goblink_park.demo.dto.request.*;
 import Back_Goblink_park.demo.dto.response.ProyectoDetalleResponse;
 import Back_Goblink_park.demo.dto.response.ProyectoResponse;
 import Back_Goblink_park.demo.entity.*;
+import Back_Goblink_park.demo.exception.BusinessException;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.*;
 import Back_Goblink_park.demo.service.interfaces.ProyectoService;
@@ -47,6 +48,7 @@ public class ProyectoServiceImpl implements ProyectoService {
     private final CronogramaActividadProyectoRepository cronogramaActividadProyectoRepository;
     private final SeguimientoProyectoRepository seguimientoProyectoRepository;
     private final SolicitudProyectoRepository solicitudProyectoRepository;
+    private final Back_Goblink_park.demo.service.interfaces.CronogramaActividadProyectoService cronogramaActividadProyectoService;
 
 
     // =====================================================
@@ -55,7 +57,17 @@ public class ProyectoServiceImpl implements ProyectoService {
     @Override
     @Transactional
     public ProyectoResponse crearProyecto(ProyectoRequest request, String correoUsuario) {
+        List<Long> idsReportes = obtenerIdsReportesDeProyectoRequest(request);
+        if (idsReportes != null && !idsReportes.isEmpty()) {
+            validarReportesParaVincular(idsReportes, null);
+        }
+
         Proyecto proyectoGuardado = crearProyectoBase(request, correoUsuario);
+
+        if (idsReportes != null && !idsReportes.isEmpty()) {
+            vincularReportesAlProyecto(proyectoGuardado, idsReportes);
+        }
+
         return ProyectoMapper.toResponse(proyectoGuardado);
     }
 
@@ -69,27 +81,18 @@ public class ProyectoServiceImpl implements ProyectoService {
             throw new IllegalArgumentException("Los datos del proyecto son obligatorios");
         }
 
+        List<Long> idsReportes = obtenerIdsReportesDeCompletoRequest(request);
+
+        // Validar reportes ANTES de persistir el proyecto
+        if (idsReportes != null && !idsReportes.isEmpty()) {
+            validarReportesParaVincular(idsReportes, null);
+        }
+
         Proyecto proyectoGuardado = crearProyectoBase(request.getProyecto(), correoUsuario);
 
         // Asociar reportes y ACTUALIZAR SU ESTADO si se enviaron
-        if (request.getReporteIds() != null && !request.getReporteIds().isEmpty()) {
-            crearReportesAsociados(proyectoGuardado, request.getReporteIds());
-
-            // ✅ SOLUCIÓN: Buscar el estado "Convertido en proyecto"
-            EstadoReporte estadoConvertido = estadoReporteRepository.findByNombreIgnoreCase("Convertido en proyecto")
-                    .orElseThrow(() -> new ResourceNotFoundException("Estado 'Convertido en proyecto' no encontrado"));
-
-            // ✅ Actualizar cada reporte asociado
-            for (Long reporteId : request.getReporteIds()) {
-                if (reporteId != null) {
-                    Reporte reporte = reporteRepository.findById(reporteId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado con ID: " + reporteId));
-
-                    reporte.setEstadoReporte(estadoConvertido);
-                    reporte.setObservacionesAdmin("Reporte convertido en proyecto ambiental");
-                    reporteRepository.save(reporte);
-                }
-            }
+        if (idsReportes != null && !idsReportes.isEmpty()) {
+            vincularReportesAlProyecto(proyectoGuardado, idsReportes);
         }
 
         // Crear miembros
@@ -116,6 +119,8 @@ public class ProyectoServiceImpl implements ProyectoService {
         if (request.getCronogramaActividades() != null && !request.getCronogramaActividades().isEmpty()) {
             crearCronogramaProyecto(proyectoGuardado, request.getCronogramaActividades());
         }
+
+        cronogramaActividadProyectoService.recalcularAvanceProyecto(proyectoGuardado.getId());
 
         return obtenerDetalleCompleto(proyectoGuardado.getId());
     }
@@ -232,7 +237,9 @@ public class ProyectoServiceImpl implements ProyectoService {
         proyecto.setPorcentajeAvance(request.getPorcentajeAvance());
         if (request.getEstado() != null) proyecto.setEstado(request.getEstado());
 
-        return ProyectoMapper.toResponse(proyectoRepository.save(proyecto));
+        Proyecto guardado = proyectoRepository.save(proyecto);
+        sincronizarReportesPorEstadoProyecto(guardado);
+        return ProyectoMapper.toResponse(guardado);
     }
 
     // =====================================================
@@ -248,15 +255,20 @@ public class ProyectoServiceImpl implements ProyectoService {
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
 
+        List<Long> idsReportes = obtenerIdsReportesDeCompletoRequest(request);
+        if (idsReportes != null && !idsReportes.isEmpty()) {
+            validarReportesParaVincular(idsReportes, proyectoId);
+        }
+
         // Actualizar datos generales
         actualizarDatosGeneralesProyecto(proyecto, request.getProyecto());
         Proyecto proyectoActualizado = proyectoRepository.save(proyecto);
 
         // Sincronizar reportes (solo si se envían explícitamente)
-        if (request.getReporteIds() != null) {
+        if (idsReportes != null) {
             proyectoReporteRepository.eliminarPorProyectoId(proyectoId);
             proyectoReporteRepository.flush();
-            crearReportesAsociados(proyectoActualizado, request.getReporteIds());
+            vincularReportesAlProyecto(proyectoActualizado, idsReportes);
         }
 
         // ✅ CORRECCIÓN CLAVE: Antes de eliminar miembros, eliminar las actividades que los referencian
@@ -311,6 +323,8 @@ public class ProyectoServiceImpl implements ProyectoService {
             crearCronogramaProyecto(proyectoActualizado, request.getCronogramaActividades());
         }
 
+        cronogramaActividadProyectoService.recalcularAvanceProyecto(proyectoActualizado.getId());
+
         return obtenerDetalleCompleto(proyectoActualizado.getId());
     }
 
@@ -343,18 +357,104 @@ public class ProyectoServiceImpl implements ProyectoService {
     }
 
     // =====================================================
-    // MÉTODOS AUXILIARES DE CREACIÓN
+    // VALIDACIÓN Y VINCULACIÓN DE REPORTES ASOCIADOS
     // =====================================================
-    private void crearReportesAsociados(Proyecto proyecto, List<Long> reporteIds) {
-        if (reporteIds == null) return;
-        reporteIds.stream().filter(id -> id != null).distinct().forEach(reporteId -> {
+    private List<Long> obtenerIdsReportesDeProyectoRequest(ProyectoRequest request) {
+        if (request == null) return null;
+        if (request.getReporteIds() != null && !request.getReporteIds().isEmpty()) {
+            return request.getReporteIds();
+        }
+        return request.getReportesIds();
+    }
+
+    private List<Long> obtenerIdsReportesDeCompletoRequest(ProyectoCompletoRequest request) {
+        if (request == null) return null;
+        if (request.getReporteIds() != null) {
+            return request.getReporteIds();
+        }
+        if (request.getReportesIds() != null) {
+            return request.getReportesIds();
+        }
+        return obtenerIdsReportesDeProyectoRequest(request.getProyecto());
+    }
+
+    private void validarReportesParaVincular(List<Long> reporteIds, Long proyectoActualId) {
+        if (reporteIds == null || reporteIds.isEmpty()) return;
+
+        for (Long reporteId : reporteIds.stream().filter(id -> id != null).distinct().toList()) {
             Reporte reporte = reporteRepository.findById(reporteId)
                     .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado con ID: " + reporteId));
+
+            if (Boolean.TRUE.equals(reporte.getEliminado())) {
+                throw new BusinessException("El reporte '" + reporte.getTitulo() + "' está eliminado y no puede vincularse a un proyecto.");
+            }
+
+            if (esReporteResuelto(reporte)) {
+                throw new BusinessException("El reporte '" + reporte.getTitulo() + "' ya ha sido resuelto y no puede vincularse a un nuevo proyecto.");
+            }
+
+            Proyecto proyectoExistente = obtenerProyectoVinculadoActivo(reporte, proyectoActualId);
+            if (proyectoExistente != null) {
+                throw new BusinessException("El reporte '" + reporte.getTitulo() + "' ya se encuentra vinculado al proyecto #" + proyectoExistente.getId());
+            }
+
+            if (proyectoActualId == null && esReporteConvertidoEnProyecto(reporte)) {
+                throw new BusinessException("El reporte '" + reporte.getTitulo() + "' ya se encuentra vinculado a un proyecto.");
+            }
+        }
+    }
+
+    private boolean esReporteResuelto(Reporte reporte) {
+        if (reporte == null || reporte.getEstadoReporte() == null || reporte.getEstadoReporte().getNombre() == null) {
+            return false;
+        }
+        String n = reporte.getEstadoReporte().getNombre().trim().toLowerCase();
+        return n.equals("resuelto") || n.equals("resuelta") || n.contains("resuelto");
+    }
+
+    private boolean esReporteConvertidoEnProyecto(Reporte reporte) {
+        if (reporte == null || reporte.getEstadoReporte() == null || reporte.getEstadoReporte().getNombre() == null) {
+            return false;
+        }
+        String n = reporte.getEstadoReporte().getNombre().trim().toLowerCase();
+        return n.contains("convertido");
+    }
+
+    private Proyecto obtenerProyectoVinculadoActivo(Reporte reporte, Long proyectoActualId) {
+        if (reporte == null || reporte.getId() == null) return null;
+        List<ProyectoReporte> relaciones = proyectoReporteRepository.findByReporteId(reporte.getId());
+        if (relaciones != null) {
+            for (ProyectoReporte pr : relaciones) {
+                if (pr != null && pr.getProyecto() != null && !Boolean.TRUE.equals(pr.getProyecto().getEliminado())) {
+                    if (proyectoActualId == null || !proyectoActualId.equals(pr.getProyecto().getId())) {
+                        return pr.getProyecto();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private void vincularReportesAlProyecto(Proyecto proyecto, List<Long> reporteIds) {
+        if (reporteIds == null || reporteIds.isEmpty()) return;
+
+        EstadoReporte estadoConvertido = estadoReporteRepository.findByNombreIgnoreCase("Convertido en proyecto")
+                .orElseGet(() -> estadoReporteRepository.findById(7L)
+                        .orElseThrow(() -> new ResourceNotFoundException("Estado 'Convertido en proyecto' no encontrado")));
+
+        for (Long reporteId : reporteIds.stream().filter(id -> id != null).distinct().toList()) {
+            Reporte reporte = reporteRepository.findById(reporteId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado con ID: " + reporteId));
+
             ProyectoReporte proyectoReporte = new ProyectoReporte();
             proyectoReporte.setProyecto(proyecto);
             proyectoReporte.setReporte(reporte);
             proyectoReporteRepository.save(proyectoReporte);
-        });
+
+            reporte.setEstadoReporte(estadoConvertido);
+            reporte.setObservacionesAdmin("Reporte convertido en proyecto ambiental");
+            reporteRepository.save(reporte);
+        }
     }
 
 
@@ -545,36 +645,16 @@ public class ProyectoServiceImpl implements ProyectoService {
         if (request == null || request.getProyecto() == null) {
             throw new IllegalArgumentException("Los datos del proyecto son obligatorios");
         }
-        if (request.getReporteIds() == null || request.getReporteIds().isEmpty()) {
-            throw new IllegalArgumentException("Debe seleccionar al menos un reporte para convertir en proyecto");
+        List<Long> idsReportes = obtenerIdsReportesDeCompletoRequest(request);
+        if (idsReportes == null || idsReportes.isEmpty()) {
+            throw new BusinessException("Debe seleccionar al menos un reporte para convertir en proyecto");
         }
 
-        EstadoReporte estadoConvertido = estadoReporteRepository.findByNombreIgnoreCase("Convertido en proyecto")
-                .orElseThrow(() -> new ResourceNotFoundException("Estado 'Convertido en proyecto' no encontrado"));
+        // Validar reportes ANTES de crear (lanza BusinessException si está RESUELTO o ya tiene proyecto vinculado)
+        validarReportesParaVincular(idsReportes, null);
 
-        // Validar reportes antes de crear
-        request.getReporteIds().stream().filter(reporteId -> reporteId != null).distinct().forEach(reporteId -> {
-            Reporte reporte = reporteRepository.findById(reporteId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado con ID: " + reporteId));
-            if (reporte.getEliminado() != null && reporte.getEliminado()) {
-                throw new IllegalArgumentException("El reporte con ID " + reporteId + " está eliminado");
-            }
-            if (reporte.getEstadoReporte() != null && "Convertido en proyecto".equalsIgnoreCase(reporte.getEstadoReporte().getNombre())) {
-                throw new IllegalArgumentException("El reporte con ID " + reporteId + " ya fue convertido en proyecto");
-            }
-        });
-
-        // Crear proyecto completo
+        // Crear proyecto completo (que también asocia y actualiza los reportes)
         ProyectoDetalleResponse proyectoCreado = crearProyectoCompleto(request, correoUsuario);
-
-        // Actualizar estado de los reportes
-        request.getReporteIds().stream().filter(reporteId -> reporteId != null).distinct().forEach(reporteId -> {
-            Reporte reporte = reporteRepository.findById(reporteId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Reporte no encontrado con ID: " + reporteId));
-            reporte.setEstadoReporte(estadoConvertido);
-            reporte.setObservacionesAdmin("Reporte convertido en proyecto ambiental");
-            reporteRepository.save(reporte);
-        });
 
         return obtenerDetalleCompleto(proyectoCreado.getProyecto().getId());
     }
@@ -607,9 +687,53 @@ public class ProyectoServiceImpl implements ProyectoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Estado de proyecto no encontrado con ID: " + estadoProyectoId));
 
         proyecto.setEstadoProyecto(estadoProyecto);
+        if (esEstadoProyectoFinalizado(estadoProyecto)) {
+            proyecto.setPorcentajeAvance(100.0);
+        }
         Proyecto actualizado = proyectoRepository.save(proyecto);
+        sincronizarReportesPorEstadoProyecto(actualizado);
 
         return ProyectoMapper.toResponse(actualizado);
+    }
+
+    private boolean esEstadoProyectoFinalizado(EstadoProyecto ep) {
+        if (ep == null) return false;
+        if (Long.valueOf(4L).equals(ep.getId())) return true;
+        if (ep.getNombre() != null) {
+            String n = ep.getNombre().trim().toLowerCase();
+            return n.contains("finalizado") || n.contains("completado");
+        }
+        return false;
+    }
+
+    private void sincronizarReportesPorEstadoProyecto(Proyecto proyecto) {
+        if (proyecto == null || proyecto.getId() == null) return;
+        boolean finalizado = esEstadoProyectoFinalizado(proyecto.getEstadoProyecto())
+                || (proyecto.getPorcentajeAvance() != null && proyecto.getPorcentajeAvance() >= 100.0);
+
+        List<ProyectoReporte> relaciones = proyectoReporteRepository.findByProyectoId(proyecto.getId());
+        if (relaciones == null || relaciones.isEmpty()) return;
+
+        EstadoReporte estadoObjetivo = finalizado
+                ? estadoReporteRepository.findByNombreIgnoreCase("Resuelto")
+                        .orElseGet(() -> estadoReporteRepository.findById(3L).orElse(null))
+                : estadoReporteRepository.findByNombreIgnoreCase("Convertido en proyecto")
+                        .orElseGet(() -> estadoReporteRepository.findById(7L).orElse(null));
+
+        if (estadoObjetivo == null) return;
+
+        for (ProyectoReporte rel : relaciones) {
+            Reporte rep = rel.getReporte();
+            if (rep != null && !Boolean.TRUE.equals(rep.getEliminado())) {
+                if (rep.getEstadoReporte() == null || rep.getEstadoReporte().getId() != estadoObjetivo.getId()) {
+                    rep.setEstadoReporte(estadoObjetivo);
+                    if (finalizado) {
+                        rep.setObservacionesAdmin("Reporte resuelto tras finalización del proyecto ambiental asociado");
+                    }
+                    reporteRepository.save(rep);
+                }
+            }
+        }
     }
 
     // =====================================================

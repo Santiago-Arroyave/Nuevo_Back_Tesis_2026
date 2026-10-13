@@ -6,12 +6,15 @@ import Back_Goblink_park.demo.dto.request.ProyectoReporteRequest;
 
 import Back_Goblink_park.demo.dto.response.ProyectoReporteResponse;
 
+import Back_Goblink_park.demo.entity.EstadoReporte;
 import Back_Goblink_park.demo.entity.Proyecto;
 import Back_Goblink_park.demo.entity.ProyectoReporte;
 import Back_Goblink_park.demo.entity.Reporte;
 
+import Back_Goblink_park.demo.exception.BusinessException;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 
+import Back_Goblink_park.demo.repository.EstadoReporteRepository;
 import Back_Goblink_park.demo.repository.ProyectoReporteRepository;
 import Back_Goblink_park.demo.repository.ProyectoRepository;
 import Back_Goblink_park.demo.repository.ReporteRepository;
@@ -40,6 +43,8 @@ public class ProyectoReporteServiceImpl
 
     private final ReporteRepository reporteRepository;
 
+    private final EstadoReporteRepository estadoReporteRepository;
+
     // =====================================================
     // ASOCIAR REPORTE
     // =====================================================
@@ -56,9 +61,7 @@ public class ProyectoReporteServiceImpl
 
         Proyecto proyecto = proyectoRepository
                 .findById(request.getProyectoId())
-
                 .orElseThrow(() ->
-
                         new ResourceNotFoundException(
                                 "Proyecto no encontrado"
                         )
@@ -70,30 +73,63 @@ public class ProyectoReporteServiceImpl
 
         Reporte reporte = reporteRepository
                 .findById(request.getReporteId())
-
                 .orElseThrow(() ->
-
                         new ResourceNotFoundException(
                                 "Reporte no encontrado"
                         )
                 );
 
         // ==============================================
-        // VALIDAR DUPLICADO
+        // VALIDAR REGLAS DE NEGOCIO (RESUELTO O YA VINCULADO)
         // ==============================================
 
-        boolean existe = proyectoReporteRepository
+        if (reporte.getEstadoReporte() != null && reporte.getEstadoReporte().getNombre() != null) {
+            String nombreEstado = reporte.getEstadoReporte().getNombre().trim().toLowerCase();
+            if (nombreEstado.contains("resuelto") || nombreEstado.contains("resuelta")) {
+                throw new BusinessException("El reporte '" + reporte.getTitulo() + "' ya ha sido resuelto y no puede vincularse a un nuevo proyecto.");
+            }
+        }
 
+        List<ProyectoReporte> relacionesExistentes = proyectoReporteRepository.findByReporteId(request.getReporteId());
+        if (relacionesExistentes != null) {
+            for (ProyectoReporte rel : relacionesExistentes) {
+                if (rel != null && rel.getProyecto() != null && !Boolean.TRUE.equals(rel.getProyecto().getEliminado())) {
+                    throw new BusinessException("El reporte '" + reporte.getTitulo() + "' ya se encuentra vinculado al proyecto #" + rel.getProyecto().getId());
+                }
+            }
+        }
+
+        boolean existe = proyectoReporteRepository
                 .existsByProyectoIdAndReporteId(
                         request.getProyectoId(),
                         request.getReporteId()
                 );
 
         if (existe) {
-
-            throw new RuntimeException(
-                    "El reporte ya está asociado al proyecto"
+            throw new BusinessException(
+                    "El reporte '" + reporte.getTitulo() + "' ya se encuentra vinculado al proyecto #" + request.getProyectoId()
             );
+        }
+
+        // ==============================================
+        // ACTUALIZAR ESTADO DEL REPORTE SEGÚN EL PROYECTO
+        // ==============================================
+
+        boolean proyectoFinalizado = (proyecto.getEstadoProyecto() != null
+                && (Long.valueOf(4L).equals(proyecto.getEstadoProyecto().getId())
+                || (proyecto.getEstadoProyecto().getNombre() != null
+                && proyecto.getEstadoProyecto().getNombre().toLowerCase().contains("finalizado"))))
+                || (proyecto.getPorcentajeAvance() != null && proyecto.getPorcentajeAvance() >= 100.0);
+
+        EstadoReporte estadoObjetivo = proyectoFinalizado
+                ? estadoReporteRepository.findByNombreIgnoreCase("Resuelto")
+                        .orElseGet(() -> estadoReporteRepository.findById(3L).orElse(null))
+                : estadoReporteRepository.findByNombreIgnoreCase("Convertido en proyecto")
+                        .orElseGet(() -> estadoReporteRepository.findById(7L).orElse(null));
+
+        if (estadoObjetivo != null) {
+            reporte.setEstadoReporte(estadoObjetivo);
+            reporteRepository.save(reporte);
         }
 
         // ==============================================

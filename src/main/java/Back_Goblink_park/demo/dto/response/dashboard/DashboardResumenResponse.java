@@ -13,19 +13,23 @@ public class DashboardResumenResponse {
 
     private Long reportesPendientes;
 
-    private Long reportesEnRevision;  // ✅ CAMBIO: de "reportesProceso" a "reportesEnRevision"
+    private Long reportesEnRevision;
 
     private Long reportesResueltos;
 
-    private Long reportesConvertidosProyecto;  // ✅ AGREGAR
+    private Long reportesConvertidosProyecto;
 
-    private Long reportesCriticos;  // ✅ AGREGAR
+    private Long convertidosEnProyecto;
+
+    private Long reportesCriticos;
 
     private Long actividadesVencidas;
 
     private Long proyectosActivos;
 
-    private Long proyectosFinalizados;  // ✅ AGREGAR
+    private Long proyectosEnCurso;
 
-    private Long miembrosActivos;  // ✅ CAMBIO: de "totalMiembros" a "miembrosActivos"
+    private Long proyectosFinalizados;
+
+    private Long miembrosActivos;
 }

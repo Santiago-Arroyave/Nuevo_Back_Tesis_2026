@@ -47,11 +47,17 @@ public class ReporteMapaResponse {
     private String colorPrioridad;
 
     // =====================================================
-    // ESTADO REPORTE
+    // ESTADO REPORTE Y PROYECTO VINCULADO
     // =====================================================
     private Long estadoReporteId;
     private String estadoReporteNombre;
     private String colorEstadoReporte;
+    private String estado;
+    private Boolean esProyecto;
+    private Boolean convertidoEnProyecto;
+    private Long proyectoId;
+    private String proyectoNombre;
+
     // =====================================================
     // FOTO Y USUARIO
     // =====================================================

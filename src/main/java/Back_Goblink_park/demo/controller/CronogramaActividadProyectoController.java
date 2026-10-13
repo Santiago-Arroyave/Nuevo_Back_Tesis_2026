@@ -113,21 +113,24 @@ public class CronogramaActividadProyectoController {
     )
     public ResponseEntity<CronogramaActividadProyectoResponse> marcarActividadCompletada(
             @PathVariable Long id,
-            @RequestPart(value = "files", required = false) List<MultipartFile> files, // ✅ CAMBIADO A LISTA
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @RequestPart(value = "descripcionEvidencia", required = false) String descripcionEvidencia,
             @RequestPart(value = "observaciones", required = false) String observaciones) {
 
-        // ✅ AGREGA ESTOS LOGS PARA DEPURAR
-        System.out.println("🔍 [CONTROLLER] ID Actividad: " + id);
-        System.out.println("🔍 [CONTROLLER] Cantidad de archivos recibidos: " + (files != null ? files.size() : "NULL"));
-        System.out.println("🔍 [CONTROLLER] Observaciones: " + observaciones);
-
-        // Llamar al service pasando la lista de archivos directamente
         CronogramaActividadProyectoResponse response = actividadService.marcarActividadCompletadaConEvidencia(
                 id, files, descripcionEvidencia, observaciones
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping(
+            value = "/{id}/completar",
+            consumes = "!multipart/form-data"
+    )
+    public ResponseEntity<CronogramaActividadProyectoResponse> marcarActividadCompletadaSimple(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(actividadService.marcarActividadCompletada(id));
     }
 
     // =====================================================

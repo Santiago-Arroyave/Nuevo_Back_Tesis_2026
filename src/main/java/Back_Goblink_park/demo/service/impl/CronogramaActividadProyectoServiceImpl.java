@@ -8,28 +8,40 @@ import Back_Goblink_park.demo.dto.response.ActividadEvidenciaResponse;
 import Back_Goblink_park.demo.dto.response.CronogramaActividadProyectoResponse;
 import Back_Goblink_park.demo.entity.ActividadEvidencia;
 import Back_Goblink_park.demo.entity.CronogramaActividadProyecto;
+import Back_Goblink_park.demo.entity.EstadoProyecto;
+import Back_Goblink_park.demo.entity.EstadoReporte;
 import Back_Goblink_park.demo.entity.Proyecto;
 import Back_Goblink_park.demo.entity.ProyectoMiembro;
+import Back_Goblink_park.demo.entity.ProyectoReporte;
+import Back_Goblink_park.demo.entity.Reporte;
 import Back_Goblink_park.demo.entity.Usuario;
 import Back_Goblink_park.demo.exception.ResourceNotFoundException;
 import Back_Goblink_park.demo.repository.ActividadEvidenciaRepository;
 import Back_Goblink_park.demo.repository.CronogramaActividadProyectoRepository;
+import Back_Goblink_park.demo.repository.EstadoProyectoRepository;
+import Back_Goblink_park.demo.repository.EstadoReporteRepository;
 import Back_Goblink_park.demo.repository.ProyectoMiembroRepository;
+import Back_Goblink_park.demo.repository.ProyectoReporteRepository;
 import Back_Goblink_park.demo.repository.ProyectoRepository;
+import Back_Goblink_park.demo.repository.ReporteRepository;
 import Back_Goblink_park.demo.repository.UsuarioRepository;
 import Back_Goblink_park.demo.service.interfaces.CronogramaActividadProyectoService;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.Normalizer;
 import java.time.LocalDate;
-import java.util.Base64;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CronogramaActividadProyectoServiceImpl
@@ -44,7 +56,29 @@ public class CronogramaActividadProyectoServiceImpl
     private final ProyectoMiembroRepository proyectoMiembroRepository;
     private final ActividadEvidenciaRepository actividadEvidenciaRepository;
     private final UsuarioRepository usuarioRepository;
+    private final EstadoProyectoRepository estadoProyectoRepository;
+    private final EstadoReporteRepository estadoReporteRepository;
+    private final ProyectoReporteRepository proyectoReporteRepository;
+    private final ReporteRepository reporteRepository;
     private final Back_Goblink_park.demo.service.interfaces.FileStorageService fileStorageService;
+
+    // =====================================================
+    // SINCRONIZACIÓN AUTOMÁTICA AL INICIAR
+    // =====================================================
+
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
+    public void sincronizarEstadosProyectosExistentes() {
+        try {
+            List<Proyecto> proyectos = proyectoRepository.findByEliminadoFalse();
+            for (Proyecto p : proyectos) {
+                recalcularAvanceProyecto(p.getId());
+            }
+            log.info("✅ [CRONOGRAMA] Estados de {} proyectos y sus reportes asociados sincronizados.", proyectos.size());
+        } catch (Exception e) {
+            log.warn("⚠️ [CRONOGRAMA] No se pudo ejecutar la sincronización inicial de estados: {}", e.getMessage());
+        }
+    }
 
     // =====================================================
     // MÉTODO AUXILIAR: BUSCAR MIEMBRO POR USUARIO O ID DIRECTO
@@ -100,6 +134,7 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
+    @Transactional
     public CronogramaActividadProyectoResponse crearActividad(
             CronogramaActividadProyectoRequest request) {
 
@@ -113,16 +148,19 @@ public class CronogramaActividadProyectoServiceImpl
                 request.getUsuarioId()
         );
 
+        String estadoInicial = request.getEstado() != null ? request.getEstado() : "pendiente";
+        boolean esCompletada = "completada".equalsIgnoreCase(estadoInicial) || "completado".equalsIgnoreCase(estadoInicial);
+
         CronogramaActividadProyecto actividad = CronogramaActividadProyecto.builder()
                 .proyecto(proyecto)
                 .proyectoMiembro(proyectoMiembro)
                 .nombre(request.getNombre())
                 .descripcion(request.getDescripcion())
-                .estado(request.getEstado())
+                .estado(estadoInicial)
                 .prioridad(request.getPrioridad() != null ? request.getPrioridad() : "media")
-                .porcentajeAvance(request.getPorcentajeAvance() != null
-                        ? request.getPorcentajeAvance()
-                        : BigDecimal.ZERO)
+                .porcentajeAvance(esCompletada
+                        ? BigDecimal.valueOf(100)
+                        : (request.getPorcentajeAvance() != null ? request.getPorcentajeAvance() : BigDecimal.ZERO))
                 .fechaInicio(request.getFechaInicio())
                 .fechaFin(request.getFechaFin())
                 .urlEvidencia(request.getUrlEvidencia())
@@ -130,6 +168,7 @@ public class CronogramaActividadProyectoServiceImpl
                 .build();
 
         CronogramaActividadProyecto guardada = actividadRepository.save(actividad);
+        recalcularAvanceProyecto(proyecto.getId());
         return CronogramaActividadProyectoMapper.toResponse(guardada);
     }
 
@@ -198,6 +237,7 @@ public class CronogramaActividadProyectoServiceImpl
     // =====================================================
 
     @Override
+    @Transactional
     public CronogramaActividadProyectoResponse actualizarActividad(
             Long id, CronogramaActividadProyectoRequest request) {
 
@@ -230,7 +270,15 @@ public class CronogramaActividadProyectoServiceImpl
         actividad.setUrlEvidencia(request.getUrlEvidencia());
         actividad.setObservaciones(request.getObservaciones());
 
+        if (esActividadCompletada(actividad)) {
+            actividad.setPorcentajeAvance(BigDecimal.valueOf(100));
+            if (actividad.getFechaFin() == null) {
+                actividad.setFechaFin(LocalDate.now());
+            }
+        }
+
         CronogramaActividadProyecto actualizada = actividadRepository.save(actividad);
+        recalcularAvanceProyecto(proyecto.getId());
         return CronogramaActividadProyectoMapper.toResponse(actualizada);
     }
 
@@ -243,6 +291,7 @@ public class CronogramaActividadProyectoServiceImpl
     public void eliminarActividad(Long id) {
         CronogramaActividadProyecto actividad = actividadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
+        Long proyectoId = actividad.getProyecto() != null ? actividad.getProyecto().getId() : null;
         if (actividad.getEvidencias() != null) {
             actividad.getEvidencias().forEach(e -> {
                 if (e.getUrlArchivo() != null && !e.getUrlArchivo().isBlank()) {
@@ -254,6 +303,10 @@ public class CronogramaActividadProyectoServiceImpl
             fileStorageService.deleteFile(actividad.getUrlEvidencia());
         }
         actividadRepository.delete(actividad);
+        actividadRepository.flush();
+        if (proyectoId != null) {
+            recalcularAvanceProyecto(proyectoId);
+        }
     }
 
     // =====================================================
@@ -267,6 +320,7 @@ public class CronogramaActividadProyectoServiceImpl
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada"));
 
         actividad.setEstado("completada");
+        actividad.setPorcentajeAvance(BigDecimal.valueOf(100));
 
         if (actividad.getFechaFin() == null) {
             actividad.setFechaFin(LocalDate.now());
@@ -280,11 +334,6 @@ public class CronogramaActividadProyectoServiceImpl
 
         return CronogramaActividadProyectoMapper.toResponse(actualizada);
     }
-
-    // =====================================================
-    // MARCAR ACTIVIDAD COMO COMPLETADA CON EVIDENCIA (BASE64)
-    // =====================================================
-
 
     // =====================================================
     // MARCAR ACTIVIDAD COMO COMPLETADA CON MÚLTIPLES EVIDENCIAS
@@ -303,6 +352,7 @@ public class CronogramaActividadProyectoServiceImpl
 
         // 1. Marcar como completada
         actividad.setEstado("completada");
+        actividad.setPorcentajeAvance(BigDecimal.valueOf(100));
         if (actividad.getFechaFin() == null) {
             actividad.setFechaFin(LocalDate.now());
         }
@@ -342,46 +392,160 @@ public class CronogramaActividadProyectoServiceImpl
         // 4. Guardar la actividad actualizada
         actividadRepository.save(actividad);
 
-        // 5. Recalcular avance del proyecto
+        // 5. Recalcular avance y actualizar estado del proyecto y reportes vinculados
         if (actividad.getProyecto() != null) {
             recalcularAvanceProyecto(actividad.getProyecto().getId());
         }
 
         // ✅ 6. FORZAR CARGA DE LA COLECCIÓN LAZY
-        actividad.getEvidencias().size(); // Esto fuerza a Hibernate a cargar la colección
+        actividad.getEvidencias().size();
 
         return CronogramaActividadProyectoMapper.toResponse(actividad);
     }
 
     // =====================================================
-    // RECALCULAR AVANCE DEL PROYECTO
+    // RECALCULAR AVANCE Y TRANSICIÓN DE ESTADO DEL PROYECTO
     // =====================================================
 
     @Override
     @Transactional
     public BigDecimal recalcularAvanceProyecto(Long proyectoId) {
-        List<CronogramaActividadProyecto> actividades = actividadRepository
-                .findByProyectoIdOrderByFechaInicioAsc(proyectoId);
-
-        if (actividades.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-
-        long completadas = actividades.stream()
-                .filter(a -> "completada".equalsIgnoreCase(a.getEstado()))
-                .count();
-
-        BigDecimal porcentaje = BigDecimal.valueOf(completadas)
-                .multiply(BigDecimal.valueOf(100))
-                .divide(BigDecimal.valueOf(actividades.size()), 2, RoundingMode.HALF_UP);
-
         Proyecto proyecto = proyectoRepository.findById(proyectoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Proyecto no encontrado"));
 
+        List<CronogramaActividadProyecto> actividades = actividadRepository
+                .findByProyectoIdOrderByFechaInicioAsc(proyectoId);
+
+        BigDecimal porcentaje = BigDecimal.ZERO;
+        boolean hayActividadesEnProgreso = false;
+        boolean todasCompletadas = false;
+
+        if (!actividades.isEmpty()) {
+            long completadas = actividades.stream()
+                    .filter(this::esActividadCompletada)
+                    .count();
+
+            porcentaje = BigDecimal.valueOf(completadas)
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(BigDecimal.valueOf(actividades.size()), 2, RoundingMode.HALF_UP);
+
+            todasCompletadas = (completadas == actividades.size());
+            hayActividadesEnProgreso = actividades.stream().anyMatch(this::esActividadEnProgreso);
+        }
+
         proyecto.setPorcentajeAvance(porcentaje.doubleValue());
-        proyectoRepository.save(proyecto);
+
+        // Transición automática de EstadoProyecto según avance del cronograma:
+        // - Si avance == 100% (todas las actividades completadas) -> EstadoProyecto.FINALIZADO
+        // - Si avance > 0% && avance < 100% (o hay actividades en progreso) -> EstadoProyecto.EN_EJECUCION
+        // - Si avance == 0% y no hay actividades en progreso -> EstadoProyecto.PLANIFICACION
+        if (todasCompletadas || porcentaje.compareTo(BigDecimal.valueOf(100)) >= 0) {
+            EstadoProyecto estadoFinalizado = buscarEstadoProyecto("finalizado", 4L);
+            if (estadoFinalizado != null) {
+                proyecto.setEstadoProyecto(estadoFinalizado);
+            }
+            proyectoRepository.save(proyecto);
+            actualizarEstadoReportesVinculados(proyectoId, true);
+        } else if (porcentaje.compareTo(BigDecimal.ZERO) > 0 || hayActividadesEnProgreso) {
+            EstadoProyecto estadoEnEjecucion = buscarEstadoProyecto("ejecucion", 2L);
+            if (estadoEnEjecucion != null) {
+                proyecto.setEstadoProyecto(estadoEnEjecucion);
+            }
+            proyectoRepository.save(proyecto);
+            actualizarEstadoReportesVinculados(proyectoId, false);
+        } else {
+            EstadoProyecto estadoPlanificacion = buscarEstadoProyecto("planificacion", 1L);
+            if (estadoPlanificacion != null) {
+                proyecto.setEstadoProyecto(estadoPlanificacion);
+            }
+            proyectoRepository.save(proyecto);
+            actualizarEstadoReportesVinculados(proyectoId, false);
+        }
 
         return porcentaje;
+    }
+
+    private boolean esActividadCompletada(CronogramaActividadProyecto a) {
+        if (a == null) return false;
+        if (a.getEstado() != null) {
+            String est = normalizarTexto(a.getEstado());
+            if (est.equals("completada") || est.equals("completado") || est.equals("finalizada") || est.equals("finalizado")) {
+                return true;
+            }
+        }
+        return a.getPorcentajeAvance() != null && a.getPorcentajeAvance().compareTo(BigDecimal.valueOf(100)) >= 0;
+    }
+
+    private boolean esActividadEnProgreso(CronogramaActividadProyecto a) {
+        if (a == null) return false;
+        if (esActividadCompletada(a)) return true;
+        if (a.getEstado() != null) {
+            String est = normalizarTexto(a.getEstado());
+            if (est.contains("progreso") || est.contains("ejecucion") || est.contains("curso") || est.equals("activo") || est.equals("activa")) {
+                return true;
+            }
+        }
+        if (a.getPorcentajeAvance() != null && a.getPorcentajeAvance().compareTo(BigDecimal.ZERO) > 0) {
+            return true;
+        }
+        if (a.getUrlEvidencia() != null && !a.getUrlEvidencia().isBlank()) {
+            return true;
+        }
+        return a.getEvidencias() != null && !a.getEvidencias().isEmpty();
+    }
+
+    private EstadoProyecto buscarEstadoProyecto(String palabraClaveNormalizada, Long fallbackId) {
+        List<EstadoProyecto> todos = estadoProyectoRepository.findAll();
+        for (EstadoProyecto ep : todos) {
+            if (ep.getNombre() != null && normalizarTexto(ep.getNombre()).contains(palabraClaveNormalizada)) {
+                return ep;
+            }
+        }
+        return estadoProyectoRepository.findById(fallbackId).orElse(null);
+    }
+
+    private EstadoReporte buscarEstadoReporte(String palabraClaveNormalizada, Long fallbackId) {
+        List<EstadoReporte> todos = estadoReporteRepository.findAll();
+        for (EstadoReporte er : todos) {
+            if (er.getNombre() != null && normalizarTexto(er.getNombre()).contains(palabraClaveNormalizada)) {
+                return er;
+            }
+        }
+        return estadoReporteRepository.findById(fallbackId).orElse(null);
+    }
+
+    private void actualizarEstadoReportesVinculados(Long proyectoId, boolean proyectoFinalizado) {
+        List<ProyectoReporte> relaciones = proyectoReporteRepository.findByProyectoId(proyectoId);
+        if (relaciones == null || relaciones.isEmpty()) {
+            return;
+        }
+
+        EstadoReporte estadoObjetivo = proyectoFinalizado
+                ? buscarEstadoReporte("resuelto", 3L)
+                : buscarEstadoReporte("convertido", 7L);
+
+        if (estadoObjetivo == null) {
+            return;
+        }
+
+        for (ProyectoReporte rel : relaciones) {
+            Reporte reporte = rel.getReporte();
+            if (reporte != null && !Boolean.TRUE.equals(reporte.getEliminado())) {
+                if (reporte.getEstadoReporte() == null || reporte.getEstadoReporte().getId() != estadoObjetivo.getId()) {
+                    reporte.setEstadoReporte(estadoObjetivo);
+                    if (proyectoFinalizado) {
+                        reporte.setObservacionesAdmin("Reporte resuelto tras finalización del proyecto ambiental asociado");
+                    }
+                    reporteRepository.save(reporte);
+                }
+            }
+        }
+    }
+
+    private String normalizarTexto(String input) {
+        if (input == null) return "";
+        String norm = Normalizer.normalize(input.trim().toLowerCase(), Normalizer.Form.NFD);
+        return norm.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
     }
 
     // =====================================================
@@ -446,9 +610,19 @@ public class CronogramaActividadProyectoServiceImpl
             actividad.getEvidencias().add(guardada);
         }
 
+        // Al subir evidencia final de la actividad, marcar como completada y recalcular estado del proyecto
+        actividad.setEstado("completada");
+        actividad.setPorcentajeAvance(BigDecimal.valueOf(100));
+        if (actividad.getFechaFin() == null) {
+            actividad.setFechaFin(LocalDate.now());
+        }
         if (actividad.getUrlEvidencia() == null || actividad.getUrlEvidencia().isBlank()) {
             actividad.setUrlEvidencia(url);
-            actividadRepository.save(actividad);
+        }
+        actividadRepository.save(actividad);
+
+        if (actividad.getProyecto() != null) {
+            recalcularAvanceProyecto(actividad.getProyecto().getId());
         }
 
         return ActividadEvidenciaMapper.toResponse(guardada);
@@ -484,11 +658,17 @@ public class CronogramaActividadProyectoServiceImpl
 
         // Si era la URL principal de la actividad, limpiar
         CronogramaActividadProyecto actividad = evidencia.getActividad();
+        Long proyectoId = (actividad != null && actividad.getProyecto() != null) ? actividad.getProyecto().getId() : null;
         if (actividad != null && evidencia.getUrlArchivo() != null && evidencia.getUrlArchivo().equals(actividad.getUrlEvidencia())) {
             actividad.setUrlEvidencia(null);
             actividadRepository.save(actividad);
         }
 
         actividadEvidenciaRepository.delete(evidencia);
+        actividadEvidenciaRepository.flush();
+
+        if (proyectoId != null) {
+            recalcularAvanceProyecto(proyectoId);
+        }
     }
 }

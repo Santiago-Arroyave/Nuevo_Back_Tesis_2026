@@ -3,6 +3,7 @@ package Back_Goblink_park.demo.dto.mapper;
 import Back_Goblink_park.demo.dto.response.*;
 import Back_Goblink_park.demo.entity.*;
 
+import java.text.Normalizer;
 import java.util.Collections;
 import java.util.List;
 
@@ -17,6 +18,11 @@ public class ReporteMapper {
         }
 
         String fotoPrincipalUrl = calcularFotoPrincipalUrl(reporte);
+        Proyecto proyectoVinculado = obtenerProyectoVinculado(reporte);
+        Long proyectoId = proyectoVinculado != null ? proyectoVinculado.getId() : null;
+        String proyectoNombre = proyectoVinculado != null ? proyectoVinculado.getNombre() : null;
+        String estadoCodigo = calcularEstadoCodigo(reporte);
+        boolean esProyecto = (proyectoId != null) || "CONVERTIDO_EN_PROYECTO".equals(estadoCodigo);
 
         return ReporteResponse.builder()
                 // ID
@@ -70,10 +76,15 @@ public class ReporteMapper {
                 .fechaValidacion(reporte.getFechaValidacion())
                 .observacionesAdmin(reporte.getObservacionesAdmin())
 
-                // ESTADO GENERAL
+                // ESTADO GENERAL Y PROYECTO VINCULADO
                 .publico(reporte.getPublico())
                 .eliminado(reporte.getEliminado())
-                .estado(reporte.getEstado())
+                .estado(estadoCodigo)
+                .activo(reporte.getEstado())
+                .esProyecto(esProyecto)
+                .convertidoEnProyecto(esProyecto)
+                .proyectoId(proyectoId)
+                .proyectoNombre(proyectoNombre)
 
                 // AUDITORÍA
                 .createdAt(reporte.getCreatedAt())
@@ -83,6 +94,52 @@ public class ReporteMapper {
                 .evidencias(mapEvidencias(reporte.getEvidencias()))
                 .comentarios(mapComentarios(reporte.getComentarios()))
                 .build();
+    }
+
+    private static Proyecto obtenerProyectoVinculado(Reporte reporte) {
+        if (reporte == null) return null;
+        try {
+            List<ProyectoReporte> asociados = reporte.getProyectosAsociados();
+            if (asociados != null && !asociados.isEmpty()) {
+                for (ProyectoReporte pr : asociados) {
+                    if (pr != null && pr.getProyecto() != null && !Boolean.TRUE.equals(pr.getProyecto().getEliminado())) {
+                        return pr.getProyecto();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Si la colección lazy no está inicializada fuera de sesión, retornar null de forma segura
+        }
+        return null;
+    }
+
+    private static String calcularEstadoCodigo(Reporte reporte) {
+        if (reporte == null || reporte.getEstadoReporte() == null || reporte.getEstadoReporte().getNombre() == null) {
+            return "PENDIENTE";
+        }
+        String raw = reporte.getEstadoReporte().getNombre().trim();
+        String norm = Normalizer.normalize(raw.toLowerCase(), Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+
+        if (norm.contains("resuelto") || norm.contains("resuelta")) {
+            return "RESUELTO";
+        }
+        if (norm.contains("pendiente")) {
+            return "PENDIENTE";
+        }
+        if (norm.contains("descartad") || norm.contains("rechazad")) {
+            return "DESCARTADO";
+        }
+        if (norm.contains("revision")) {
+            return "EN_REVISION";
+        }
+        if (norm.contains("validad")) {
+            return "VALIDADO";
+        }
+        if (norm.contains("convertido")) {
+            return "CONVERTIDO_EN_PROYECTO";
+        }
+        return norm.toUpperCase().replace(" ", "_");
     }
 
     // =====================================================
@@ -164,6 +221,11 @@ public class ReporteMapper {
 
         String fotoPrincipalUrl = calcularFotoPrincipalUrl(reporte);
         String usuarioFotoPerfil = (reporte.getUsuario() != null) ? reporte.getUsuario().getFotoPerfil() : null;
+        Proyecto proyectoVinculado = obtenerProyectoVinculado(reporte);
+        Long proyectoId = proyectoVinculado != null ? proyectoVinculado.getId() : null;
+        String proyectoNombre = proyectoVinculado != null ? proyectoVinculado.getNombre() : null;
+        String estadoCodigo = calcularEstadoCodigo(reporte);
+        boolean esProyecto = (proyectoId != null) || "CONVERTIDO_EN_PROYECTO".equals(estadoCodigo);
 
         boolean tieneImagen = (fotoPrincipalUrl != null && !fotoPrincipalUrl.isBlank()) ||
                 (reporte.getEvidencias() != null && reporte.getEvidencias().stream()
@@ -191,6 +253,11 @@ public class ReporteMapper {
                 .estadoReporteId(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getId() : null)
                 .estadoReporteNombre(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getNombre() : null)
                 .colorEstadoReporte(reporte.getEstadoReporte() != null ? reporte.getEstadoReporte().getColor() : null)
+                .estado(estadoCodigo)
+                .esProyecto(esProyecto)
+                .convertidoEnProyecto(esProyecto)
+                .proyectoId(proyectoId)
+                .proyectoNombre(proyectoNombre)
 
                 .tieneImagen(tieneImagen)
                 .fotoPrincipalUrl(fotoPrincipalUrl)

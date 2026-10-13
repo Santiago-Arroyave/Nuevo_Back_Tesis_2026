@@ -84,11 +84,16 @@ public class ReporteResponse {
     private String observacionesAdmin;
 
     // =====================================================
-    // ESTADO GENERAL
+    // ESTADO GENERAL Y PROYECTO VINCULADO
     // =====================================================
     private Boolean publico;
     private Boolean eliminado;
-    private Boolean estado;
+    private String estado;
+    private Boolean activo;
+    private Boolean esProyecto;
+    private Boolean convertidoEnProyecto;
+    private Long proyectoId;
+    private String proyectoNombre;
 
     // =====================================================
     // AUDITORÍA

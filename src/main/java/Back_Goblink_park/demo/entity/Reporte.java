@@ -36,12 +36,12 @@ public class Reporte {
     // PROYECTOS ASOCIADOS
     // =====================================================
 
+    @org.hibernate.annotations.BatchSize(size = 50)
     @OneToMany(
             mappedBy = "reporte",
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-
     private List<ProyectoReporte> proyectosAsociados;
 
 
