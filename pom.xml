@@ -18,7 +18,7 @@
 		<java.version>21</java.version>
 		<maven.compiler.source>21</maven.compiler.source>
 		<maven.compiler.target>21</maven.compiler.target>
-		<lombok.version>1.18.34</lombok.version> <!-- 👈 NUEVO: versión explícita de Lombok -->
+		<lombok.version>1.18.36</lombok.version> <!-- 👈 NUEVO: versión explícita de Lombok -->
 	</properties>
 
 	<dependencies>
@@ -101,11 +101,12 @@
 		</dependency>
 
 		<!-- LOMBOK con versión explícita y scope provided -->
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>${lombok.version}</version> <!-- 👈 AHORA USA LA VERSIÓN EXPLÍCITA -->
-			<scope>provided</scope> <!-- 👈 CAMBIADO: mejor para compilación -->
+			<version>${lombok.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- DEVTOOLS (solo desarrollo) -->
